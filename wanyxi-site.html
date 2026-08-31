@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wanyxi — AI Automation &amp; Business Systems</title>
+<meta name="description" content="Wanyxi builds intelligent AI-powered automations that eliminate repetitive work, connect your business systems, and help your team move faster.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════ TOKENS ═══════════════ */
+:root{
+  --cream:#F3EFE7;
+  --surface:#FBF8F2;
+  --band:#E9E3D7;
+  --char:#1A1916;
+  --char-2:#24231E;
+  --char-3:#2F2D26;
+  --muted:#6E6A60;
+  --muted-dk:#9C978B;
+  --rule:#DCD5C6;
+  --rule-dk:#33302A;
+  --accent:#1E5B45;
+  --accent-2:#276F55;
+  --accent-lt:#79BE9D;
+  --accent-wash:rgba(30,91,69,.09);
+
+  --max:1280px;
+  --gut:clamp(20px,5vw,56px);
+  --nav:76px;
+  --e:cubic-bezier(.22,.61,.36,1);
+
+  --d:"Bricolage Grotesque",Georgia,sans-serif;
+  --s:"Instrument Sans",system-ui,-apple-system,sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--cream);color:var(--char);
+  font-family:var(--s);font-size:15px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+svg{display:block}
+a{color:inherit;text-decoration:none}
+button,input,textarea,select{font:inherit;color:inherit}
+::selection{background:var(--accent);color:#fff}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+
+h1,h2,h3,h4{margin:0;font-family:var(--d);font-weight:800;letter-spacing:-0.035em;line-height:.94;
+  font-variation-settings:"opsz" 72,"wdth" 100,"wght" 800}
+p{margin:0}
+.wrap{width:100%;max-width:var(--max);margin-inline:auto;padding-inline:var(--gut)}
+.dim{color:var(--muted)}
+.on-dark .dim{color:var(--muted-dk)}
+.lede{color:var(--muted);max-width:52ch;font-size:16px;line-height:1.65}
+.on-dark .lede{color:var(--muted-dk)}
+
+/* ═══════════════ BUTTONS ═══════════════ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  height:50px;padding:0 26px;border-radius:2px;border:1px solid transparent;
+  font-size:12.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+  cursor:pointer;position:relative;overflow:hidden;
+  transition:background .3s var(--e),color .3s var(--e),border-color .3s var(--e),transform .18s var(--e);
+}
+.btn:active{transform:scale(.985)}
+.btn--dark{background:var(--char);color:var(--cream)}
+.btn--dark:hover{background:var(--accent)}
+.btn--accent{background:var(--accent);color:#fff}
+.btn--accent:hover{background:var(--accent-2)}
+.btn--line{border-color:var(--char);color:var(--char)}
+.btn--line:hover{background:var(--char);color:var(--cream)}
+.btn--onDark{border-color:rgba(255,255,255,.28);color:var(--cream)}
+.btn--onDark:hover{background:var(--cream);color:var(--char);border-color:var(--cream)}
+.btn--light{background:var(--cream);color:var(--char)}
+.btn--light:hover{background:#fff}
+.btn--sm{height:40px;padding:0 18px;font-size:11.5px}
+.btn--wide{width:100%}
+
+/* ═══════════════ NAV ═══════════════ */
+.nav{position:fixed;inset:0 0 auto;z-index:70;height:var(--nav);display:flex;align-items:center;
+  background:rgba(243,239,231,.86);backdrop-filter:blur(16px);
+  border-bottom:1px solid transparent;transition:border-color .4s var(--e),box-shadow .4s var(--e)}
+.nav.stuck{border-bottom-color:var(--rule)}
+.nav__in{display:flex;align-items:center;gap:28px;width:100%;max-width:var(--max);margin-inline:auto;padding-inline:var(--gut)}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand__w{width:19px;height:19px;flex:none}
+.brand__t{font-family:var(--d);font-size:16px;font-variation-settings:"wdth" 100,"wght" 800;letter-spacing:.09em;line-height:1}
+.menu{display:flex;gap:26px}
+.menu a{position:relative;font-size:13px;color:var(--muted);padding:4px 0;transition:color .25s var(--e)}
+.menu a::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:1.5px;background:var(--accent);
+  transform:scaleX(0);transform-origin:left;transition:transform .32s var(--e)}
+.menu a:hover{color:var(--char)}
+.menu a.on{color:var(--char);font-weight:600}
+.menu a.on::after,.menu a:hover::after{transform:scaleX(1)}
+.burger{display:none;width:42px;height:42px;background:none;border:0;position:relative;margin-right:-10px;cursor:pointer}
+.burger i{position:absolute;left:11px;width:20px;height:1.6px;background:var(--char);transition:transform .34s var(--e)}
+.burger i:nth-child(1){top:17px}.burger i:nth-child(2){top:24px}
+body.open .burger i:nth-child(1){transform:translateY(3.5px) rotate(45deg)}
+body.open .burger i:nth-child(2){transform:translateY(-3.5px) rotate(-45deg)}
+.sheet{position:fixed;inset:0;z-index:65;background:var(--cream);padding:calc(var(--nav) + 30px) var(--gut) 40px;
+  display:flex;flex-direction:column;opacity:0;visibility:hidden;transform:translateY(-8px);
+  transition:opacity .32s var(--e),transform .32s var(--e),visibility .32s;overflow-y:auto}
+body.open .sheet{opacity:1;visibility:visible;transform:none}
+.sheet a{padding:15px 0;border-bottom:1px solid var(--rule);font-family:var(--d);font-size:26px;
+  font-variation-settings:"wght" 700;letter-spacing:-.03em}
+.sheet .btn{margin-top:26px}
+
+/* ═══════════════ PAGES / TRANSITION ═══════════════ */
+.page{display:none}
+.page.live{display:block;animation:pageIn .5s var(--e) both}
+@keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.sec{padding:clamp(72px,9vw,120px) 0}
+.sec--dark{background:var(--char);color:var(--cream)}
+.sec--band{background:var(--band)}
+.sec--tight{padding-block:clamp(52px,6vw,80px)}
+
+/* page header */
+.phead{padding:calc(var(--nav) + clamp(56px,8vw,104px)) 0 clamp(40px,5vw,64px);border-bottom:1px solid var(--rule)}
+.phead__k{display:flex;align-items:center;gap:10px;font-size:11.5px;letter-spacing:.14em;color:var(--accent);font-weight:600;margin-bottom:22px}
+.phead__k::before{content:"";width:22px;height:1.5px;background:var(--accent)}
+.phead h1{font-size:clamp(2.5rem,6.4vw,5rem);font-variation-settings:"opsz" 96,"wght" 800}
+.phead .lede{margin-top:22px}
+.phead__grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:40px;align-items:end}
+
+.shead{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.85fr);gap:32px;align-items:end;margin-bottom:clamp(36px,4.5vw,56px)}
+.shead h2{font-size:clamp(1.9rem,4.2vw,3.1rem);font-variation-settings:"opsz" 72,"wght" 800}
+.shead__r{display:flex;flex-direction:column;gap:18px;align-items:flex-start}
+
+/* ═══════════════ HERO ═══════════════ */
+.hero{padding:calc(var(--nav) + clamp(52px,7vw,86px)) 0 clamp(64px,7vw,96px)}
+.hero__grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,540px);gap:clamp(36px,5vw,68px);align-items:center}
+.hero h1{font-size:clamp(2.6rem,6.6vw,5.4rem);line-height:.9;letter-spacing:-.045em;font-variation-settings:"opsz" 96,"wght" 800}
+.hero h1 span{display:block;overflow:hidden}
+.hero h1 b{display:block;font-weight:inherit;transform:translateY(102%)}
+.boot .hero h1 b{transform:none;transition:transform .95s var(--e)}
+.boot .hero h1 span:nth-child(2) b{transition-delay:.09s}
+.hero__sub{margin-top:26px;max-width:48ch}
+.hero__cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
+.hero__sub,.hero__cta,.hero__vis{opacity:0;transform:translateY(14px)}
+.boot .hero__sub,.boot .hero__cta,.boot .hero__vis{opacity:1;transform:none;
+  transition:opacity .8s var(--e) .3s,transform .8s var(--e) .3s}
+.boot .hero__cta{transition-delay:.4s}
+.boot .hero__vis{transition-delay:.24s}
+
+/* ═══════════════ PRODUCT UI ═══════════════ */
+.ui{background:var(--char);color:var(--cream);border-radius:5px;overflow:hidden;
+  box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 26px 60px -28px rgba(26,25,22,.55)}
+.ui__bar{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--rule-dk)}
+.ui__dot{width:6px;height:6px;border-radius:50%;background:var(--accent-lt)}
+.ui__ttl{font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted-dk);font-weight:600}
+.ui__live{margin-left:auto;font-size:11px;color:var(--accent-lt);display:flex;align-items:center;gap:6px}
+.ui__live::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--accent-lt);animation:blip 2.4s ease-in-out infinite}
+@keyframes blip{0%,100%{opacity:1}50%{opacity:.25}}
+.ui__body{padding:16px 18px 18px}
+
+.row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
+  padding:13px 0;border-bottom:1px solid var(--rule-dk)}
+.row:last-child{border-bottom:0}
+.row__n{font-size:13.5px;font-weight:600;letter-spacing:-.01em}
+.row__m{font-size:11.5px;color:var(--muted-dk);margin-top:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:30ch}
+.tag{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:2px;white-space:nowrap}
+.tag--hot{background:var(--accent-lt);color:#10281F}
+.tag--warm{background:rgba(121,190,157,.16);color:var(--accent-lt)}
+.tag--cold{background:rgba(255,255,255,.07);color:var(--muted-dk)}
+.row.new{animation:rowIn .55s var(--e) both}
+@keyframes rowIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+
+.ui__foot{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;padding:14px 18px;
+  border-top:1px solid var(--rule-dk);background:var(--char-2);font-size:11.5px;color:var(--muted-dk)}
+.ui__foot b{color:var(--accent-lt);font-weight:600}
+
+/* stage flow (hero secondary) */
+.flow{display:flex;align-items:center;gap:0;padding:14px 18px;border-top:1px solid var(--rule-dk);background:var(--char-2)}
+.flow__s{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-dk);white-space:nowrap}
+.flow__s.act{color:var(--accent-lt);font-weight:600}
+.flow__l{flex:1;height:1px;background:var(--rule-dk);margin:0 10px;min-width:8px}
+
+/* ═══════════════ CARDS ═══════════════ */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:clamp(24px,2.6vw,32px);
+  display:flex;flex-direction:column;position:relative;overflow:hidden;
+  transition:border-color .35s var(--e),transform .35s var(--e),box-shadow .35s var(--e)}
+.card::after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--accent);
+  transform:scaleX(0);transform-origin:left;transition:transform .45s var(--e)}
+.card:hover{border-color:#C9C0AC;transform:translateY(-3px);box-shadow:0 18px 40px -26px rgba(26,25,22,.35)}
+.card:hover::after{transform:scaleX(1)}
+.card__i{width:30px;height:30px;stroke:var(--accent);fill:none;stroke-width:1.3;margin-bottom:auto}
+.card h3{margin-top:30px;font-size:clamp(1.15rem,1.9vw,1.4rem);letter-spacing:-.02em;
+  font-variation-settings:"opsz" 24,"wght" 700}
+.card p{margin-top:11px;color:var(--muted);font-size:14px;max-width:30ch}
+.card__go{margin-top:20px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);
+  display:inline-flex;align-items:center;gap:8px}
+.card__go svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.6;transition:transform .32s var(--e)}
+.card:hover .card__go svg{transform:translateX(4px)}
+a.card{min-height:230px}
+
+/* ═══════════════ STEPS ═══════════════ */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(20px,3vw,40px);position:relative}
+.steps::before{content:"";position:absolute;top:5px;left:6%;right:6%;height:1px;background:var(--rule-dk)}
+.sec--band .steps::before,.sec:not(.sec--dark) .steps::before{background:var(--rule)}
+.step{position:relative;padding-top:34px}
+.step::before{content:"";position:absolute;top:0;left:0;width:11px;height:11px;border-radius:50%;
+  background:var(--char);border:1px solid var(--rule);z-index:1}
+.sec--dark .step::before{background:var(--char);border-color:var(--rule-dk)}
+.step.lit::before{background:var(--accent-lt);border-color:var(--accent-lt)}
+.sec:not(.sec--dark) .step::before{background:var(--cream)}
+.sec:not(.sec--dark) .step.lit::before{background:var(--accent);border-color:var(--accent)}
+.step__n{font-size:11.5px;font-weight:700;letter-spacing:.13em;color:var(--accent)}
+.sec--dark .step__n{color:var(--accent-lt)}
+.step h3{margin-top:14px;font-size:clamp(1.4rem,2.5vw,2rem);font-variation-settings:"opsz" 40,"wght" 800}
+.step p{margin-top:11px;font-size:14px;max-width:28ch;color:var(--muted)}
+.sec--dark .step p{color:var(--muted-dk)}
+.spark{position:absolute;top:1px;left:6%;width:9px;height:9px;border-radius:50%;background:var(--accent-lt);
+  box-shadow:0 0 0 4px rgba(121,190,157,.14);animation:run 6s var(--e) infinite}
+@keyframes run{0%{left:6%;opacity:0}6%{opacity:1}94%{opacity:1}100%{left:calc(94% - 9px);opacity:0}}
+
+/* ═══════════════ FEATURE MODULES ═══════════════ */
+.mods{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.mod{grid-column:span 4;background:var(--surface);border:1px solid var(--rule);border-radius:4px;
+  padding:22px;display:flex;flex-direction:column;transition:border-color .35s var(--e)}
+.mod:hover{border-color:#C9C0AC}
+.mod--7{grid-column:span 7}
+.mod--5{grid-column:span 5}
+.mod--6{grid-column:span 6}
+.mod__h{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.mod__d{font-size:13px;color:var(--muted);margin-top:6px;max-width:34ch}
+.mod__ui{margin-top:20px;border:1px solid var(--rule);border-radius:3px;background:var(--cream);padding:14px;flex:1}
+
+.line{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:12.5px}
+.line:last-child{border-bottom:0;padding-bottom:0}
+.line:first-child{padding-top:0}
+.line__k{color:var(--muted);min-width:74px;font-size:11.5px}
+.line__v{font-weight:600;letter-spacing:-.01em}
+.pill{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  padding:3px 8px;border-radius:2px;background:var(--accent-wash);color:var(--accent)}
+.pill--n{background:rgba(26,25,22,.06);color:var(--muted)}
+.mark{background:var(--accent-wash);color:var(--accent);padding:1px 4px;border-radius:2px;font-weight:600}
+.quote{font-size:13px;line-height:1.7;color:var(--char)}
+.bar{height:5px;border-radius:3px;background:rgba(26,25,22,.08);overflow:hidden;margin-top:7px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:3px;width:0;transition:width 1.1s var(--e)}
+.in .bar i{width:var(--w)}
+.meter{margin-bottom:13px}
+.meter:last-child{margin-bottom:0}
+.meter__t{display:flex;justify-content:space-between;font-size:12px}
+.meter__t span:last-child{color:var(--muted);font-variant-numeric:tabular-nums}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{border:1px solid var(--rule);border-radius:3px;padding:12px 10px;text-align:center;font-size:11.5px;
+  color:var(--muted);background:var(--surface);transition:color .3s var(--e),border-color .3s var(--e)}
+.tile:hover{color:var(--accent);border-color:var(--accent)}
+.note{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--rule);font-size:12.5px}
+.note:last-child{border-bottom:0}
+.note em{font-style:normal;color:var(--muted);margin-left:auto;font-size:11px;white-space:nowrap}
+.dotv{width:7px;height:7px;border-radius:50%;background:var(--accent);margin-top:6px;flex:none}
+.dotv--n{background:var(--rule)}
+.chain{display:flex;flex-direction:column;gap:9px}
+.node{display:flex;align-items:center;gap:10px;border:1px solid var(--rule);border-radius:3px;
+  padding:10px 12px;font-size:12.5px;background:var(--surface);position:relative}
+.node b{font-weight:600}
+.node em{font-style:normal;color:var(--muted);margin-left:auto;font-size:11px}
+.node__i{width:16px;height:16px;stroke:var(--accent);fill:none;stroke-width:1.5;flex:none}
+.chain__j{width:1px;height:9px;background:var(--rule);margin-left:21px}
+
+/* ═══════════════ SOLUTIONS ROWS ═══════════════ */
+.srow{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:clamp(30px,5vw,64px);
+  align-items:center;padding:clamp(48px,6vw,76px) 0;border-bottom:1px solid var(--rule)}
+.srow:last-child{border-bottom:0}
+.srow--flip .srow__t{order:2}
+.srow__k{font-size:11.5px;letter-spacing:.14em;color:var(--accent);font-weight:600}
+.srow h2{margin-top:16px;font-size:clamp(1.8rem,3.6vw,2.8rem);font-variation-settings:"opsz" 56,"wght" 800}
+.srow p{margin-top:16px;color:var(--muted);max-width:42ch;font-size:15px}
+.srow ul{margin:22px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+.srow li{display:flex;gap:10px;font-size:14px;color:var(--char)}
+.srow li::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--accent);margin-top:8px;flex:none}
+.srow .btn{margin-top:28px}
+
+/* ═══════════════ PRICING ═══════════════ */
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start}
+.plan{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:clamp(24px,2.6vw,34px);
+  display:flex;flex-direction:column;min-height:420px;transition:border-color .35s var(--e)}
+.plan:hover{border-color:#C9C0AC}
+.plan--top{background:var(--char);color:var(--cream);border-color:var(--char)}
+.plan__tag{align-self:flex-start;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--accent-lt);margin-bottom:16px}
+.plan__sp{height:26px}
+.plan h3{font-size:1.35rem;font-variation-settings:"opsz" 24,"wght" 700;letter-spacing:-.01em}
+.plan__d{margin-top:12px;font-size:13.5px;color:var(--muted);max-width:30ch}
+.plan--top .plan__d{color:var(--muted-dk)}
+.plan__p{margin-top:28px;padding-top:24px;border-top:1px solid var(--rule);
+  font-family:var(--d);font-size:clamp(1.9rem,3vw,2.5rem);font-variation-settings:"opsz" 40,"wght" 800;
+  letter-spacing:-.04em;line-height:1}
+.plan--top .plan__p{border-top-color:var(--rule-dk)}
+.plan__p small{font-family:var(--s);font-size:12.5px;font-weight:400;letter-spacing:0;color:var(--muted);margin-left:7px}
+.plan--top .plan__p small{color:var(--muted-dk)}
+.plan ul{margin:22px 0 30px;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.plan li{display:flex;gap:9px;font-size:13.5px;color:var(--muted)}
+.plan--top li{color:var(--muted-dk)}
+.plan li svg{width:13px;height:13px;stroke:var(--accent);fill:none;stroke-width:2;flex:none;margin-top:4px}
+.plan--top li svg{stroke:var(--accent-lt)}
+.plan .btn{margin-top:auto}
+
+/* mini pricing preview */
+.prow{display:grid;grid-template-columns:1fr auto auto;gap:20px;align-items:center;
+  padding:20px 0;border-bottom:1px solid var(--rule-dk)}
+.prow:last-of-type{border-bottom:0}
+.prow h4{font-size:1.05rem;font-variation-settings:"opsz" 20,"wght" 700}
+.prow p{font-size:13px;color:var(--muted-dk);margin-top:4px}
+.prow__p{font-family:var(--d);font-size:1.4rem;font-variation-settings:"wght" 700;letter-spacing:-.03em;white-space:nowrap}
+
+/* ═══════════════ FAQ ═══════════════ */
+.faq{border-top:1px solid var(--rule);max-width:820px}
+.q{border-bottom:1px solid var(--rule)}
+.q__b{width:100%;display:flex;align-items:flex-start;gap:20px;padding:24px 0;background:none;border:0;
+  text-align:left;cursor:pointer;font-family:var(--d);font-size:clamp(1.05rem,2vw,1.3rem);
+  font-variation-settings:"opsz" 24,"wght" 700;letter-spacing:-.02em;line-height:1.3;
+  transition:color .28s var(--e)}
+.q__b:hover{color:var(--accent)}
+.q__ic{margin-left:auto;width:16px;height:16px;flex:none;position:relative;margin-top:5px}
+.q__ic::before,.q__ic::after{content:"";position:absolute;background:var(--accent);transition:transform .34s var(--e)}
+.q__ic::before{left:0;right:0;top:7.5px;height:1.5px}
+.q__ic::after{top:0;bottom:0;left:7.5px;width:1.5px}
+.q.on .q__ic::after{transform:scaleY(0)}
+.q__p{overflow:hidden;height:0;transition:height .38s var(--e)}
+.q__p div{padding:0 60px 26px 0;color:var(--muted);font-size:14.5px;max-width:62ch}
+
+/* ═══════════════ CONTACT ═══════════════ */
+.cgrid{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:clamp(36px,5vw,72px);align-items:start}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.f{display:flex;flex-direction:column;gap:8px}
+.f--full{grid-column:1/-1}
+.f label{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.f input,.f select,.f textarea{
+  background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:13px 14px;
+  font-size:14.5px;transition:border-color .28s var(--e),background .28s var(--e);width:100%}
+.f textarea{resize:vertical;min-height:118px;line-height:1.6}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--accent);background:#fff;outline:none}
+.f input::placeholder,.f textarea::placeholder{color:#A9A296}
+.f .err{font-size:12px;color:#9B3B2E;display:none}
+.f.bad input,.f.bad select,.f.bad textarea{border-color:#9B3B2E}
+.f.bad .err{display:block}
+.form .btn{grid-column:1/-1;justify-self:start;margin-top:6px}
+.done{border:1px solid var(--accent);border-radius:4px;padding:30px;background:var(--accent-wash)}
+.done h3{font-size:1.4rem;font-variation-settings:"opsz" 24,"wght" 700}
+.done p{margin-top:12px;color:var(--muted);font-size:14.5px;max-width:44ch}
+.done .btn{margin-top:22px}
+.aside{border-left:1px solid var(--rule);padding-left:clamp(20px,3vw,36px)}
+.aside h4{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);
+  font-family:var(--s);font-weight:700}
+.aside ol{margin:18px 0 0;padding:0;list-style:none;counter-reset:a}
+.aside li{counter-increment:a;padding:16px 0;border-bottom:1px solid var(--rule);font-size:14px;display:flex;gap:14px}
+.aside li:last-child{border-bottom:0}
+.aside li::before{content:counter(a,decimal-leading-zero);color:var(--accent);font-weight:700;font-size:11.5px;padding-top:3px}
+.aside li b{display:block;font-weight:600;margin-bottom:3px}
+.aside li span{color:var(--muted);font-size:13px}
+
+/* ═══════════════ CTA + FOOTER ═══════════════ */
+.cta{text-align:center;padding:clamp(80px,10vw,132px) 0}
+.cta h2{font-size:clamp(2rem,5vw,3.9rem);font-variation-settings:"opsz" 96,"wght" 800;letter-spacing:-.04em}
+.cta p{margin:22px auto 0;color:var(--muted-dk);max-width:38ch;font-size:16px}
+.cta__b{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:36px}
+
+.foot{background:var(--char);color:var(--cream);padding:60px 0 34px;border-top:1px solid var(--rule-dk)}
+.foot__g{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:36px;align-items:start}
+.foot__tag{font-size:11.5px;letter-spacing:.13em;color:var(--muted-dk);margin-top:12px}
+.foot__l{display:grid;grid-template-columns:repeat(2,auto);gap:11px 46px}
+.foot__l a{font-size:13.5px;color:var(--muted-dk);transition:color .25s var(--e)}
+.foot__l a:hover{color:var(--cream)}
+.foot__b{margin-top:44px;padding-top:22px;border-top:1px solid var(--rule-dk);
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted-dk)}
+
+/* ═══════════════ REVEAL ═══════════════ */
+.rv{opacity:0;transform:translateY(16px);transition:opacity .68s var(--e),transform .68s var(--e)}
+.rv.in{opacity:1;transform:none}
+.rv.a1{transition-delay:.07s}.rv.a2{transition-delay:.14s}.rv.a3{transition-delay:.21s}
+
+/* ═══════════════ RESPONSIVE ═══════════════ */
+@media(max-width:1080px){
+  .hero__grid{grid-template-columns:1fr;gap:44px}
+  .mods{grid-template-columns:repeat(6,1fr)}
+  .mod,.mod--7,.mod--5,.mod--6{grid-column:span 3}
+  .plans{grid-template-columns:1fr}
+  .plan{min-height:0}.plan__sp{display:none}
+  .srow,.srow--flip .srow__t{grid-template-columns:1fr;order:0}
+  .cgrid{grid-template-columns:1fr}
+  .aside{border-left:0;border-top:1px solid var(--rule);padding-left:0;padding-top:28px}
+}
+@media(max-width:860px){
+  .menu,.nav__in > .btn{display:none}
+  .burger{display:block}
+  .grid3{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr;gap:0}
+  .steps::before{top:6px;bottom:14px;left:5px;right:auto;width:1px;height:auto}
+  .step{padding:0 0 34px 30px}
+  .step::before{top:5px}
+  .step p{max-width:100%}
+  .spark{display:none}
+  .shead,.phead__grid{grid-template-columns:1fr;align-items:start}
+  .mods{grid-template-columns:1fr}
+  .mod,.mod--7,.mod--5,.mod--6{grid-column:span 1}
+  .form{grid-template-columns:1fr}
+  .prow{grid-template-columns:1fr;gap:12px;align-items:start}
+  .prow .btn{justify-self:start}
+  .foot__g{grid-template-columns:1fr}
+  .btn{width:100%}
+  .hero__cta,.cta__b{flex-direction:column}
+  .nav__in > .btn,.sheet .btn{width:auto}
+  .sheet .btn{width:100%}
+  .row__m{max-width:22ch}
+  .q__p div{padding-right:0}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+  .rv,.hero h1 b,.hero__sub,.hero__cta,.hero__vis{opacity:1!important;transform:none!important}
+  .spark{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ NAV ══════════ -->
+<header class="nav" id="nav">
+  <div class="nav__in">
+    <a href="#/" class="brand" aria-label="Wanyxi — home">
+      <svg class="brand__w" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M1.5 4 L6.5 20 L12 8.5 L17.5 20 L22.5 4" fill="none" stroke="#1E5B45" stroke-width="2.6" stroke-linecap="square"/>
+      </svg>
+      <span class="brand__t">WANYXI</span>
+    </a>
+    <nav class="menu" id="menu">
+      <a href="#/solutions">Solutions</a>
+      <a href="#/how-it-works">How It Works</a>
+      <a href="#/features">Features</a>
+      <a href="#/pricing">Pricing</a>
+      <a href="#/faq">FAQ</a>
+      <a href="#/contact">Contact</a>
+    </nav>
+    <a href="#/contact" class="btn btn--dark btn--sm">Get Started</a>
+    <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="sheet"><i></i><i></i></button>
+  </div>
+</header>
+
+<div class="sheet" id="sheet">
+  <a href="#/solutions">Solutions</a>
+  <a href="#/how-it-works">How It Works</a>
+  <a href="#/features">Features</a>
+  <a href="#/pricing">Pricing</a>
+  <a href="#/faq">FAQ</a>
+  <a href="#/contact">Contact</a>
+  <a href="#/contact" class="btn btn--dark">Get Started</a>
+</div>
+
+<main id="main">
+
+<!-- ══════════════════════════ HOME ══════════════════════════ -->
+<div class="page" data-route="/" id="p-home">
+
+  <section class="hero">
+    <div class="wrap hero__grid">
+      <div>
+        <h1>
+          <span><b>AUTOMATE THE WORK.</b></span>
+          <span><b>ACCELERATE THE BUSINESS.</b></span>
+        </h1>
+        <p class="lede hero__sub">Wanyxi builds intelligent AI-powered automations that eliminate repetitive work, connect your business systems, and help your team move faster.</p>
+        <div class="hero__cta">
+          <a href="#/contact" class="btn btn--dark">Start Automating</a>
+          <a href="#/solutions" class="btn btn--line">Explore Solutions</a>
+        </div>
+      </div>
+
+      <div class="hero__vis">
+        <div class="ui" aria-label="Wanyxi lead pipeline, illustrative">
+          <div class="ui__bar">
+            <span class="ui__dot"></span>
+            <span class="ui__ttl">Lead pipeline</span>
+            <span class="ui__live">Running</span>
+          </div>
+          <div class="ui__body" id="pipe"></div>
+          <div class="flow">
+            <span class="flow__s" data-fs="0">Capture</span><span class="flow__l"></span>
+            <span class="flow__s" data-fs="1">Understand</span><span class="flow__l"></span>
+            <span class="flow__s" data-fs="2">Qualify</span><span class="flow__l"></span>
+            <span class="flow__s" data-fs="3">Respond</span>
+          </div>
+          <div class="ui__foot">
+            <span>Avg. first reply <b>41 seconds</b></span>
+            <span>Handled without a human <b>84%</b></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec sec--tight" style="border-top:1px solid var(--rule)">
+    <div class="wrap shead rv">
+      <h2>Most businesses lose time in the gaps between their tools.</h2>
+      <div class="shead__r">
+        <p class="lede">Enquiries sit unanswered. Data is retyped between systems. Follow-up depends on someone remembering. Wanyxi closes those gaps with automations built around how your business already works.</p>
+        <a href="#/how-it-works" class="btn btn--line btn--sm">How It Works</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec sec--tight">
+    <div class="wrap">
+      <div class="shead rv">
+        <h2>BUILT TO REMOVE<br>THE BUSYWORK.</h2>
+        <div class="shead__r">
+          <p class="lede">Three capabilities, built to work together or on their own.</p>
+          <a href="#/solutions" class="btn btn--line btn--sm">All Solutions</a>
+        </div>
+      </div>
+      <div class="grid3">
+        <a class="card rv" href="#/solutions">
+          <svg class="card__i" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 11h15a5 5 0 0 1 0 10H10"/><path d="M13 17l-3 4 3 4"/><rect x="22" y="6" width="6" height="6"/></svg>
+          <h3>AI AUTOMATION</h3>
+          <p>Automate repetitive tasks and workflows.</p>
+          <span class="card__go">Explore <svg viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+        </a>
+        <a class="card rv a1" href="#/solutions">
+          <svg class="card__i" viewBox="0 0 32 32" aria-hidden="true"><rect x="13" y="4" width="7" height="7"/><rect x="3" y="21" width="7" height="7"/><rect x="23" y="21" width="7" height="7"/><path d="M16.5 11v6M6.5 21v-4h20v4"/></svg>
+          <h3>BUSINESS SYSTEMS</h3>
+          <p>Connect the tools your business already uses.</p>
+          <span class="card__go">Explore <svg viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+        </a>
+        <a class="card rv a2" href="#/solutions">
+          <svg class="card__i" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4l11 12-11 12L5 16z"/><circle cx="16" cy="16" r="3"/></svg>
+          <h3>AI AGENTS</h3>
+          <p>Deploy intelligent agents that can handle tasks automatically.</p>
+          <span class="card__go">Explore <svg viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec sec--dark on-dark">
+    <div class="wrap">
+      <div class="shead rv">
+        <h2>FROM MANUAL<br>TO AUTOMATED.</h2>
+        <div class="shead__r">
+          <p class="lede">Three stages, four to six weeks from first call to running system.</p>
+          <a href="#/how-it-works" class="btn btn--onDark btn--sm">See The Process</a>
+        </div>
+      </div>
+      <div class="steps rv" data-spark>
+        <div class="step lit"><span class="step__n">01 — CONNECT</span><h3>Connect</h3><p>Connect your existing tools and systems.</p></div>
+        <div class="step"><span class="step__n">02 — AUTOMATE</span><h3>Automate</h3><p>We design and build the workflow.</p></div>
+        <div class="step"><span class="step__n">03 — SCALE</span><h3>Scale</h3><p>Your business runs faster with less manual work.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="wrap">
+      <div class="shead rv">
+        <h2>THE SYSTEM<br>BEHIND THE WORK.</h2>
+        <div class="shead__r">
+          <p class="lede">Every Wanyxi build is a working product — capture, understanding, qualification, response and reporting in one place.</p>
+          <a href="#/features" class="btn btn--line btn--sm">View Features</a>
+        </div>
+      </div>
+      <div class="mods rv">
+        <div class="mod mod--7">
+          <span class="mod__h">Enquiries, organised on arrival</span>
+          <p class="mod__d">Every enquiry captured, deduplicated and written to your CRM.</p>
+          <div class="mod__ui">
+            <div class="line"><span class="line__k">Web form</span><span class="line__v">Amira K.</span><span class="pill">Hot</span></div>
+            <div class="line"><span class="line__k">WhatsApp</span><span class="line__v">Rashid M.</span><span class="pill">Warm</span></div>
+            <div class="line"><span class="line__k">Email</span><span class="line__v">Lina F.</span><span class="pill pill--n">Cold</span></div>
+          </div>
+        </div>
+        <div class="mod mod--5">
+          <span class="mod__h">Qualification you can audit</span>
+          <p class="mod__d">Each lead scored against your own criteria, not a black box.</p>
+          <div class="mod__ui">
+            <div class="meter"><div class="meter__t"><span>Budget fit</span><span>High</span></div><div class="bar" style="--w:86%"><i></i></div></div>
+            <div class="meter"><div class="meter__t"><span>Intent</span><span>High</span></div><div class="bar" style="--w:72%"><i></i></div></div>
+            <div class="meter"><div class="meter__t"><span>Timeline</span><span>Medium</span></div><div class="bar" style="--w:48%"><i></i></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec sec--dark on-dark">
+    <div class="wrap">
+      <div class="shead rv">
+        <h2>CHOOSE YOUR LEVEL<br>OF AUTOMATION.</h2>
+        <div class="shead__r">
+          <p class="lede">Start with one workflow or hand over the whole operation.</p>
+          <a href="#/pricing" class="btn btn--onDark btn--sm">View Pricing</a>
+        </div>
+      </div>
+      <div class="rv" id="priceMini"></div>
+    </div>
+  </section>
+
+  <section class="sec sec--dark on-dark cta" style="border-top:1px solid var(--rule-dk)">
+    <div class="wrap">
+      <h2>YOUR BUSINESS SHOULD RUN<br>WITHOUT YOU CHASING EVERY TASK.</h2>
+      <p>Build smarter systems with Wanyxi.</p>
+      <div class="cta__b">
+        <a href="#/contact" class="btn btn--light">Start Automating</a>
+        <a href="#/features" class="btn btn--onDark">See The Product</a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════════════════ SOLUTIONS ══════════════════════════ -->
+<div class="page" data-route="/solutions">
+  <section class="phead">
+    <div class="wrap phead__grid">
+      <div>
+        <span class="phead__k">Solutions</span>
+        <h1>THREE WAYS TO<br>TAKE WORK OFF<br>YOUR TEAM.</h1>
+      </div>
+      <p class="lede">Each one is built to your process, deployed into the tools you already run, and maintained by us.</p>
+    </div>
+  </section>
+
+  <section class="sec sec--tight">
+    <div class="wrap">
+
+      <div class="srow rv">
+        <div class="srow__t">
+          <span class="srow__k">01 — AI AUTOMATION</span>
+          <h2>AI AUTOMATION</h2>
+          <p>Automate repetitive tasks and workflows.</p>
+          <ul>
+            <li>Triggers from forms, inboxes, messaging and your CRM</li>
+            <li>Conditional logic that mirrors how your team actually decides</li>
+            <li>Retries, logging and alerts when something needs a human</li>
+          </ul>
+          <a href="#/contact" class="btn btn--dark">Get Started</a>
+        </div>
+        <div class="mod">
+          <span class="mod__h">Workflow — new enquiry</span>
+          <div class="mod__ui">
+            <div class="chain">
+              <div class="node"><svg class="node__i" viewBox="0 0 16 16"><path d="M2 4h12v8H2z"/><path d="M2 5l6 4 6-4"/></svg><b>Enquiry received</b><em>Trigger</em></div>
+              <div class="chain__j"></div>
+              <div class="node"><svg class="node__i" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg><b>Read &amp; extract</b><em>AI</em></div>
+              <div class="chain__j"></div>
+              <div class="node"><svg class="node__i" viewBox="0 0 16 16"><path d="M2 8h12M8 2v12"/></svg><b>Score &amp; route</b><em>Rules</em></div>
+              <div class="chain__j"></div>
+              <div class="node"><svg class="node__i" viewBox="0 0 16 16"><path d="M3 8l3 3 7-7"/></svg><b>Reply &amp; log</b><em>Action</em></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="srow srow--flip rv">
+        <div class="srow__t">
+          <span class="srow__k">02 — BUSINESS SYSTEMS</span>
+          <h2>BUSINESS SYSTEMS</h2>
+          <p>Connect the tools your business already uses.</p>
+          <ul>
+            <li>One record of truth across CRM, inbox, sheets and calendar</li>
+            <li>Two-way sync, so nothing is retyped and nothing drifts</li>
+            <li>No platform migration — we build around your stack</li>
+          </ul>
+          <a href="#/contact" class="btn btn--dark">Get Started</a>
+        </div>
+        <div class="mod">
+          <span class="mod__h">Connected surfaces</span>
+          <p class="mod__d">Categories, not lock-in. If it has an API, it connects.</p>
+          <div class="mod__ui">
+            <div class="tiles">
+              <span class="tile">CRM</span><span class="tile">Email</span><span class="tile">WhatsApp</span>
+              <span class="tile">Sheets</span><span class="tile">Calendar</span><span class="tile">Forms</span>
+              <span class="tile">Invoicing</span><span class="tile">Storage</span><span class="tile">Webhooks</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="srow rv">
+        <div class="srow__t">
+          <span class="srow__k">03 — AI AGENTS</span>
+          <h2>AI AGENTS</h2>
+          <p>Deploy intelligent agents that can handle tasks automatically.</p>
+          <ul>
+            <li>Agents that read, decide and act inside defined boundaries</li>
+            <li>Escalation to a named person the moment confidence drops</li>
+            <li>Full transcript of every decision, reviewable at any time</li>
+          </ul>
+          <a href="#/contact" class="btn btn--dark">Get Started</a>
+        </div>
+        <div class="mod">
+          <span class="mod__h">Agent — task log</span>
+          <div class="mod__ui">
+            <div class="note"><span class="dotv"></span><div><b>Answered pricing question</b><br><span class="dim">Quoted from approved price list</span></div><em>09:14</em></div>
+            <div class="note"><span class="dotv"></span><div><b>Booked discovery call</b><br><span class="dim">Tuesday 11:00, calendar updated</span></div><em>09:16</em></div>
+            <div class="note"><span class="dotv dotv--n"></span><div><b>Escalated to Omar</b><br><span class="dim">Custom scope — outside agent limits</span></div><em>09:21</em></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="sec sec--dark on-dark cta">
+    <div class="wrap">
+      <h2>NOT SURE WHICH ONE<br>YOU NEED?</h2>
+      <p>Describe the work you want gone. We will tell you what it takes.</p>
+      <div class="cta__b">
+        <a href="#/contact" class="btn btn--light">Contact Wanyxi</a>
+        <a href="#/how-it-works" class="btn btn--onDark">How It Works</a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════════════════ HOW IT WORKS ══════════════════════════ -->
+<div class="page" data-route="/how-it-works">
+  <section class="phead">
+    <div class="wrap phead__grid">
+      <div>
+        <span class="phead__k">How It Works</span>
+        <h1>FROM MANUAL<br>TO AUTOMATED.</h1>
+      </div>
+      <p class="lede">A short, deliberate process. You stay in your business; we build the system around it.</p>
+    </div>
+  </section>
+
+  <section class="sec sec--dark on-dark">
+    <div class="wrap">
+      <div class="steps rv" data-spark>
+        <div class="step lit">
+          <span class="step__n">01 — CONNECT</span>
+          <h3>Connect</h3>
+          <p>Connect your existing tools and systems.</p>
+        </div>
+        <div class="step">
+          <span class="step__n">02 — AUTOMATE</span>
+          <h3>Automate</h3>
+          <p>We design and build the workflow.</p>
+        </div>
+        <div class="step">
+          <span class="step__n">03 — SCALE</span>
+          <h3>Scale</h3>
+          <p>Your business runs faster with less manual work.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="wrap">
+      <div class="shead rv">
+        <h2>What happens at each stage.</h2>
+        <p class="lede">No long discovery decks. We map the work, build it, then keep it running.</p>
+      </div>
+      <div class="mods rv">
+        <div class="mod mod--4">
+          <span class="mod__h">01 — Connect</span>
+          <p class="mod__d">We map the process and get access to the systems that hold your data.</p>
+          <div class="mod__ui">
+            <div class="line"><span class="line__k">Week 1</span><span class="line__v">Process mapping</span></div>
+            <div class="line"><span class="line__k">Week 1</span><span class="line__v">System access</span></div>
+            <div class="line"><span class="line__k">Week 2</span><span class="line__v">Data audit</span></div>
+          </div>
+        </div>
+        <div class="mod mod--4">
+          <span class="mod__h">02 — Automate</span>
+          <p class="mod__d">We build the workflow, test it against your real cases, then go live.</p>
+          <div class="mod__ui">
+            <div class="line"><span class="line__k">Week 2–3</span><span class="line__v">Build</span></div>
+            <div class="line"><span class="line__k">Week 4</span><span class="line__v">Test on live data</span></div>
+            <div class="line"><span class="line__k">Week 4</span><span class="line__v">Go live</span><span class="pill">Ready</span></div>
+          </div>
+        </div>
+        <div class="mod mod--4">
+          <span class="mod__h">03 — Scale</span>
+          <p class="mod__d">We monitor, tune and extend the system as the business grows.</p>
+          <div class="mod__ui">
+            <div class="line"><span class="line__k">Ongoing</span><span class="line__v">Monitoring</span></div>
+            <div class="line"><span class="line__k">Monthly</span><span class="line__v">Tuning</span></div>
+            <div class="line"><span class="line__k">On request</span><span class="line__v">New workflows</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec sec--dark on-dark cta">
+    <div class="wrap">
+      <h2>START WITH ONE<br>WORKFLOW.</h2>
+      <p>Tell us what you want to automate first.</p>
+      <div class="cta__b">
+        <a href="#/contact" class="btn btn--light">Get Started</a>
+        <a href="#/pricing" class="btn btn--onDark">View Pricing</a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════════════════ FEATURES ══════════════════════════ -->
+<div class="page" data-route="/features">
+  <section class="phead">
+    <div class="wrap phead__grid">
+      <div>
+        <span class="phead__k">Features</span>
+        <h1>A PRODUCT,<br>NOT A PROMISE.</h1>
+      </div>
+      <p class="lede">This is what a Wanyxi system does once it is live. Every component below is part of a working deployment.</p>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="wrap">
+      <div class="mods rv">
+
+        <div class="mod mod--7">
+          <span class="mod__h">Automated lead capture</span>
+          <p class="mod__d">Every enquiry from every channel lands in one place, deduplicated and timestamped.</p>
+          <div class="mod__ui">
+            <div class="line"><span class="line__k">Web form</span><span class="line__v">Amira K.</span><span class="pill">New</span></div>
+            <div class="line"><span class="line__k">WhatsApp</span><span class="line__v">Rashid M.</span><span class="pill">New</span></div>
+            <div class="line"><span class="line__k">Email</span><span class="line__v">Lina F.</span><span class="pill pill--n">Duplicate</span></div>
+            <div class="line"><span class="line__k">Referral</span><span class="line__v">Tarek B.</span><span class="pill">New</span></div>
+          </div>
+        </div>
+
+        <div class="mod mod--5">
+          <span class="mod__h">AI-powered enquiry understanding</span>
+          <p class="mod__d">The system reads the message and pulls out what matters.</p>
+          <div class="mod__ui">
+            <p class="quote">Hi — we run <span class="mark">a 12-person clinic</span> and need help with <span class="mark">appointment reminders</span>. Looking to start <span class="mark">next month</span>.</p>
+          </div>
+        </div>
+
+        <div class="mod mod--5">
+          <span class="mod__h">Lead qualification</span>
+          <p class="mod__d">Scored hot, warm or cold against criteria you define.</p>
+          <div class="mod__ui">
+            <div class="meter"><div class="meter__t"><span>Budget fit</span><span>High</span></div><div class="bar" style="--w:88%"><i></i></div></div>
+            <div class="meter"><div class="meter__t"><span>Intent</span><span>High</span></div><div class="bar" style="--w:76%"><i></i></div></div>
+            <div class="meter"><div class="meter__t"><span>Timeline</span><span>Medium</span></div><div class="bar" style="--w:52%"><i></i></div></div>
+          </div>
+        </div>
+
+        <div class="mod mod--7">
+          <span class="mod__h">Automated data organisation</span>
+          <p class="mod__d">Clean, structured records written straight to your CRM — no retyping.</p>
+          <div class="mod__ui">
+            <div class="line"><span class="line__k">Name</span><span class="line__v">Amira Khalid</span></div>
+            <div class="line"><span class="line__k">Company</span><span class="line__v">Meridian Clinic</span></div>
+            <div class="line"><span class="line__k">Need</span><span class="line__v">Appointment reminders</span></div>
+            <div class="line"><span class="line__k">Timeline</span><span class="line__v">Next month</span><span class="pill">Hot</span></div>
+          </div>
+        </div>
+
+        <div class="mod mod--6">
+          <span class="mod__h">Intelligent customer responses</span>
+          <p class="mod__d">A personalised reply within seconds, in your tone, from your approved content.</p>
+          <div class="mod__ui">
+            <p class="quote">Hi Amira — thanks for reaching out about reminders for Meridian Clinic. For a 12-person team we would start with a single reminder workflow across SMS and email. I have held two slots this week to walk you through it.</p>
+            <div class="line" style="margin-top:12px;border-top:1px solid var(--rule);padding-top:11px">
+              <span class="line__k">Sent</span><span class="line__v">41 seconds after enquiry</span><span class="pill">Delivered</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod mod--6">
+          <span class="mod__h">Team notifications</span>
+          <p class="mod__d">The right person alerted the moment a lead is worth their time.</p>
+          <div class="mod__ui">
+            <div class="note"><span class="dotv"></span><div><b>Hot lead — Meridian Clinic</b><br><span class="dim">Assigned to Omar</span></div><em>Now</em></div>
+            <div class="note"><span class="dotv"></span><div><b>Reply sent — Rashid M.</b><br><span class="dim">Awaiting response</span></div><em>6m</em></div>
+            <div class="note"><span class="dotv dotv--n"></span><div><b>Needs review — Tarek B.</b><br><span class="dim">Outside agent scope</span></div><em>22m</em></div>
+          </div>
+        </div>
+
+        <div class="mod mod--7">
+          <span class="mod__h">Workflow automation</span>
+          <p class="mod__d">Multi-step processes that run end to end, with a human step only where you want one.</p>
+          <div class="mod__ui">
+            <div class="chain">
+              <div class="node"><svg class="node__i" viewBox="0 0 16 16"><path d="M2 4h12v8H2z"/><path d="M2 5l6 4 6-4"/></svg><b>Enquiry received</b><em>Trigger</em></div>
+              <div class="chain__j"></div>
+              <div class="node"><svg class="node__i" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg><b>Qualify &amp; enrich</b><em>AI</em></div>
+              <div class="chain__j"></div>
+              <div class="node"><svg class="node__i" viewBox="0 0 16 16"><path d="M3 8l3 3 7-7"/></svg><b>Reply, log, notify</b><em>Action</em></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod mod--5">
+          <span class="mod__h">Connected business systems</span>
+          <p class="mod__d">Your existing stack, wired together and kept in sync.</p>
+          <div class="mod__ui">
+            <div class="tiles">
+              <span class="tile">CRM</span><span class="tile">Email</span><span class="tile">WhatsApp</span>
+              <span class="tile">Sheets</span><span class="tile">Calendar</span><span class="tile">Webhooks</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="sec sec--dark on-dark cta">
+    <div class="wrap">
+      <h2>SEE IT RUNNING<br>ON YOUR OWN PROCESS.</h2>
+      <p>We will map one workflow with you before you commit to anything.</p>
+      <div class="cta__b">
+        <a href="#/contact" class="btn btn--light">Get Started</a>
+        <a href="#/pricing" class="btn btn--onDark">View Pricing</a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════════════════ PRICING ══════════════════════════ -->
+<div class="page" data-route="/pricing">
+  <section class="phead">
+    <div class="wrap phead__grid">
+      <div>
+        <span class="phead__k">Pricing</span>
+        <h1>CHOOSE YOUR LEVEL<br>OF AUTOMATION.</h1>
+      </div>
+      <p class="lede">Build, deployment and ongoing management included. No per-seat pricing.</p>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="wrap">
+      <div class="plans rv" id="plans"></div>
+      <p class="dim rv" style="margin-top:28px;font-size:13px">All plans include setup, integration with your existing tools, and ongoing monitoring. <a href="#/faq" style="color:var(--accent);font-weight:600">Read the FAQ</a> or <a href="#/contact" style="color:var(--accent);font-weight:600">talk to us</a>.</p>
+    </div>
+  </section>
+
+  <section class="sec sec--dark on-dark cta">
+    <div class="wrap">
+      <h2>NOT SURE WHERE<br>YOU FIT?</h2>
+      <p>Tell us the process. We will tell you the plan.</p>
+      <div class="cta__b"><a href="#/contact" class="btn btn--light">Contact Wanyxi</a></div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════════════════ FAQ ══════════════════════════ -->
+<div class="page" data-route="/faq">
+  <section class="phead">
+    <div class="wrap phead__grid">
+      <div>
+        <span class="phead__k">FAQ</span>
+        <h1>QUESTIONS,<br>ANSWERED.</h1>
+      </div>
+      <p class="lede">The things businesses ask us before they start. Anything else, just ask.</p>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="wrap">
+      <div class="faq rv" id="faq"></div>
+      <div class="rv" style="margin-top:44px">
+        <a href="#/contact" class="btn btn--dark">Ask Us Directly</a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════════════════ CONTACT ══════════════════════════ -->
+<div class="page" data-route="/contact">
+  <section class="phead">
+    <div class="wrap phead__grid">
+      <div>
+        <span class="phead__k">Contact</span>
+        <h1>TELL US WHAT YOU<br>WANT TO AUTOMATE.</h1>
+      </div>
+      <p class="lede">Describe the work that is eating your team's time. We will come back with what it would take to remove it — scope, timeline and cost.</p>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="wrap cgrid">
+      <div class="aside rv" style="border-left:0;padding-left:0">
+        <h4>What happens next</h4>
+        <ol>
+          <li><div><b>We read it properly</b><span>A person reviews your message within one business day.</span></div></li>
+          <li><div><b>A 30-minute call</b><span>We map the process and confirm it is worth automating.</span></div></li>
+          <li><div><b>A written proposal</b><span>Scope, timeline and cost. No obligation to proceed.</span></div></li>
+        </ol>
+      </div>
+
+      <div class="rv a1">
+        <form class="form" id="cform" novalidate>
+          <div class="f"><label for="n">Name</label><input id="n" name="name" type="text" placeholder="Your full name" autocomplete="name"><span class="err">Please enter your name.</span></div>
+          <div class="f"><label for="e">Business email</label><input id="e" name="email" type="email" placeholder="you@company.com" autocomplete="email"><span class="err">Please enter a valid email address.</span></div>
+          <div class="f"><label for="c">Company</label><input id="c" name="company" type="text" placeholder="Company name" autocomplete="organization"><span class="err">Please enter your company.</span></div>
+          <div class="f"><label for="w">What would you like to automate?</label>
+            <select id="w" name="what">
+              <option value="">Select an area</option>
+              <option>Lead capture and follow-up</option>
+              <option>Customer enquiries and responses</option>
+              <option>Data entry and reporting</option>
+              <option>Connecting existing systems</option>
+              <option>Something else</option>
+            </select><span class="err">Please choose an area.</span></div>
+          <div class="f f--full"><label for="m">Message</label><textarea id="m" name="message" placeholder="Describe the process as it works today — who does what, in which tool, and how often."></textarea><span class="err">Please tell us a little about the process.</span></div>
+          <button type="submit" class="btn btn--dark">Start The Conversation</button>
+        </form>
+
+        <div class="done" id="done" hidden>
+          <h3>Message received.</h3>
+          <p>Thank you — we will read it properly and come back within one business day with next steps.</p>
+          <button class="btn btn--line" id="again" type="button">Send Another</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+</main>
+
+<!-- ══════════ FOOTER ══════════ -->
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot__g">
+      <div>
+        <a href="#/" class="brand" style="margin-right:0">
+          <svg class="brand__w" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M1.5 4 L6.5 20 L12 8.5 L17.5 20 L22.5 4" fill="none" stroke="#79BE9D" stroke-width="2.6" stroke-linecap="square"/>
+          </svg>
+          <span class="brand__t" style="color:var(--cream)">WANYXI</span>
+        </a>
+        <p class="foot__tag">AI AUTOMATION &amp; BUSINESS SYSTEMS</p>
+      </div>
+      <nav class="foot__l">
+        <a href="#/solutions">Solutions</a>
+        <a href="#/pricing">Pricing</a>
+        <a href="#/how-it-works">How It Works</a>
+        <a href="#/faq">FAQ</a>
+        <a href="#/features">Features</a>
+        <a href="#/contact">Contact</a>
+      </nav>
+    </div>
+    <div class="foot__b">
+      <span>© 2026 Wanyxi. All rights reserved.</span>
+      <span>Dubai, United Arab Emirates</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ── PRICING CONFIG — edit these three values only ────────────── */
+  var PRICING = [
+    { key:"STARTER", price:"AED 299", per:"/ month",
+      desc:"For small businesses beginning their automation journey.",
+      feat:["One automated workflow","Lead capture and qualification","Two system connections","Email support"],
+      cta:"Get Started", href:"#/contact" },
+    { key:"GROWTH", price:"AED XXX", per:"/ month", top:true,
+      desc:"For businesses ready to automate multiple processes.",
+      feat:["Up to five workflows","AI agents and custom responses","Unlimited system connections","Priority support and monthly tuning"],
+      cta:"Get Started", href:"#/contact" },
+    { key:"CUSTOM", price:"LET'S TALK", per:"",
+      desc:"For complex automation systems and custom requirements.",
+      feat:["Unlimited workflows","Bespoke agent design","Dedicated build team","Service level agreement"],
+      cta:"Contact Wanyxi", href:"#/contact" }
+  ];
+
+  var tick = '<svg viewBox="0 0 16 16"><path d="M3 8.5l3.5 3.5L13 5"/></svg>';
+
+  var plans = document.getElementById("plans");
+  if (plans) {
+    plans.innerHTML = PRICING.map(function(p,i){
+      return '<article class="plan'+(p.top?' plan--top':'')+' rv a'+i+'">'
+        + (p.top ? '<span class="plan__tag">Recommended</span>' : '<span class="plan__sp"></span>')
+        + '<h3>'+p.key+'</h3>'
+        + '<p class="plan__d">'+p.desc+'</p>'
+        + '<div class="plan__p">'+p.price+(p.per?'<small>'+p.per+'</small>':'')+'</div>'
+        + '<ul>'+p.feat.map(function(f){return '<li>'+tick+'<span>'+f+'</span></li>';}).join('')+'</ul>'
+        + '<a href="'+p.href+'" class="btn '+(p.top?'btn--light':'btn--line')+' btn--wide">'+p.cta+'</a>'
+        + '</article>';
+    }).join('');
+  }
+
+  var mini = document.getElementById("priceMini");
+  if (mini) {
+    mini.innerHTML = PRICING.map(function(p){
+      return '<div class="prow"><div><h4>'+p.key+'</h4><p>'+p.desc+'</p></div>'
+        + '<span class="prow__p">'+p.price+'</span>'
+        + '<a href="#/pricing" class="btn btn--onDark btn--sm">View Plan</a></div>';
+    }).join('');
+  }
+
+  /* ── FAQ ─────────────────────────────────────────────────────── */
+  var QA = [
+    ["How long does it take to go live?","Most first workflows are running in four to six weeks. That covers mapping the process, building it, testing against your real cases and switching it on."],
+    ["Do we have to change the tools we already use?","No. Wanyxi is built around your existing stack. If a tool has an API or supports webhooks, we connect to it rather than asking you to migrate."],
+    ["What happens when the AI is unsure?","It stops and escalates. Every automation has confidence limits and a named person to hand off to, and every decision is logged so you can review it."],
+    ["Who maintains the system after launch?","We do. Monitoring, tuning and fixes are part of the monthly plan — you are not left with a workflow nobody understands."],
+    ["Is our customer data secure?","Data stays in your own systems wherever possible. We connect to them rather than copying data out, and access is scoped to only what a workflow needs."],
+    ["Can we start with just one process?","Yes, and we recommend it. Pick the process that costs your team the most time, automate that first, then extend once it is proven."]
+  ];
+  var faq = document.getElementById("faq");
+  if (faq) {
+    faq.innerHTML = QA.map(function(x,i){
+      return '<div class="q"><h3><button class="q__b" type="button" aria-expanded="false" aria-controls="qa'+i+'">'
+        + '<span>'+x[0]+'</span><span class="q__ic" aria-hidden="true"></span></button></h3>'
+        + '<div class="q__p" id="qa'+i+'" role="region"><div>'+x[1]+'</div></div></div>';
+    }).join('');
+    faq.addEventListener("click", function(ev){
+      var b = ev.target.closest(".q__b"); if(!b) return;
+      var q = b.closest(".q"), panel = q.querySelector(".q__p"), open = q.classList.contains("on");
+      faq.querySelectorAll(".q.on").forEach(function(o){
+        o.classList.remove("on");
+        o.querySelector(".q__b").setAttribute("aria-expanded","false");
+        o.querySelector(".q__p").style.height = "0px";
+      });
+      if(!open){
+        q.classList.add("on");
+        b.setAttribute("aria-expanded","true");
+        panel.style.height = panel.firstElementChild.offsetHeight + "px";
+      }
+    });
+  }
+
+  /* ── HERO PIPELINE ───────────────────────────────────────────── */
+  var LEADS = [
+    ["Amira K.","Reminders for a 12-person clinic","hot","Hot"],
+    ["Rashid M.","Quote request — fit-out project","warm","Warm"],
+    ["Lina F.","General question about services","cold","Cold"],
+    ["Tarek B.","Wants to connect CRM and inbox","hot","Hot"],
+    ["Noor A.","Pricing for two workflows","warm","Warm"]
+  ];
+  var pipe = document.getElementById("pipe"), cursor = 0;
+  function rowHTML(l, isNew){
+    return '<div class="row'+(isNew?' new':'')+'"><div><div class="row__n">'+l[0]+'</div>'
+      + '<div class="row__m">'+l[1]+'</div></div>'
+      + '<span class="tag tag--'+l[2]+'">'+l[3]+'</span></div>';
+  }
+  if (pipe) {
+    pipe.innerHTML = LEADS.slice(0,3).map(function(l){return rowHTML(l,false);}).join('');
+    cursor = 3;
+  }
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var stages = Array.prototype.slice.call(document.querySelectorAll("[data-fs]"));
+  var si = 0;
+  if (!reduce && pipe) {
+    setInterval(function(){
+      if (document.hidden) return;
+      var l = LEADS[cursor % LEADS.length]; cursor++;
+      var rows = pipe.querySelectorAll(".row");
+      if (rows.length >= 3) rows[rows.length-1].remove();
+      pipe.insertAdjacentHTML("afterbegin", rowHTML(l,true));
+    }, 4200);
+    setInterval(function(){
+      if (document.hidden) return;
+      stages.forEach(function(s,i){ s.classList.toggle("act", i === si); });
+      si = (si + 1) % stages.length;
+    }, 1100);
+  } else if (stages.length) {
+    stages.forEach(function(s){ s.classList.add("act"); });
+  }
+
+  /* ── REVEALS ─────────────────────────────────────────────────── */
+  var io = ("IntersectionObserver" in window) ? new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
+  }, {rootMargin:"0px 0px -8% 0px", threshold:.08}) : null;
+
+  function observe(root){
+    var els = root.querySelectorAll(".rv");
+    if (!io) { els.forEach(function(el){ el.classList.add("in"); }); return; }
+    els.forEach(function(el){ el.classList.remove("in"); io.observe(el); });
+    root.querySelectorAll("[data-spark]").forEach(function(s){
+      if (!reduce && !s.querySelector(".spark")) {
+        var d = document.createElement("span"); d.className = "spark"; s.appendChild(d);
+      }
+    });
+  }
+
+  /* ── ROUTER ──────────────────────────────────────────────────── */
+  var pages = Array.prototype.slice.call(document.querySelectorAll(".page"));
+  var links = Array.prototype.slice.call(document.querySelectorAll('.menu a'));
+  var TITLES = {
+    "/":"Wanyxi — AI Automation & Business Systems",
+    "/solutions":"Solutions — Wanyxi",
+    "/how-it-works":"How It Works — Wanyxi",
+    "/features":"Features — Wanyxi",
+    "/pricing":"Pricing — Wanyxi",
+    "/faq":"FAQ — Wanyxi",
+    "/contact":"Contact — Wanyxi"
+  };
+
+  function route(){
+    var path = (location.hash || "#/").replace(/^#/,"");
+    if (path.charAt(0) !== "/") path = "/";
+    var target = pages.filter(function(p){ return p.dataset.route === path; })[0];
+    if (!target) { location.replace("#/"); return; }
+
+    pages.forEach(function(p){ p.classList.remove("live"); });
+    target.classList.add("live");
+    document.title = TITLES[path] || TITLES["/"];
+    links.forEach(function(a){
+      a.classList.toggle("on", a.getAttribute("href") === "#" + path);
+      if (a.classList.contains("on")) a.setAttribute("aria-current","page");
+      else a.removeAttribute("aria-current");
+    });
+    document.body.classList.remove("open");
+    document.getElementById("burger").setAttribute("aria-expanded","false");
+    window.scrollTo(0,0);
+    observe(target);
+    document.getElementById("main").focus({preventScroll:true});
+  }
+  document.getElementById("main").setAttribute("tabindex","-1");
+  document.getElementById("main").style.outline = "none";
+  window.addEventListener("hashchange", route);
+  if (!location.hash) location.replace("#/");
+  route();
+  observe(document);
+  requestAnimationFrame(function(){ document.body.classList.add("boot"); });
+
+  /* ── NAV CHROME ──────────────────────────────────────────────── */
+  var nav = document.getElementById("nav");
+  var onScroll = function(){ nav.classList.toggle("stuck", window.scrollY > 6); };
+  onScroll(); window.addEventListener("scroll", onScroll, {passive:true});
+
+  var burger = document.getElementById("burger");
+  burger.addEventListener("click", function(){
+    var open = !document.body.classList.contains("open");
+    document.body.classList.toggle("open", open);
+    burger.setAttribute("aria-expanded", String(open));
+    burger.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape") { document.body.classList.remove("open"); burger.setAttribute("aria-expanded","false"); }
+  });
+
+  /* ── CONTACT FORM ────────────────────────────────────────────── */
+  var form = document.getElementById("cform"), done = document.getElementById("done");
+  if (form) {
+    form.addEventListener("submit", function(e){
+      e.preventDefault();
+      var ok = true;
+      form.querySelectorAll("input,select,textarea").forEach(function(el){
+        var wrapEl = el.closest(".f"), v = el.value.trim(), good = !!v;
+        if (el.type === "email") good = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+        wrapEl.classList.toggle("bad", !good);
+        if (!good && ok) { el.focus(); ok = false; }
+      });
+      if (!ok) return;
+      form.hidden = true; done.hidden = false;
+      done.scrollIntoView({behavior: reduce ? "auto" : "smooth", block:"center"});
+    });
+    form.addEventListener("input", function(e){
+      var f = e.target.closest(".f"); if (f) f.classList.remove("bad");
+    });
+    document.getElementById("again").addEventListener("click", function(){
+      form.reset(); form.hidden = false; done.hidden = true;
+      form.querySelectorAll(".f").forEach(function(f){ f.classList.remove("bad"); });
+      form.querySelector("input").focus();
+    });
+  }
+})();
+</script>
+</body>
+</html>

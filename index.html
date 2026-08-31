@@ -345,10 +345,31 @@ a.card{min-height:230px}
 .f.bad input,.f.bad select,.f.bad textarea{border-color:#9B3B2E}
 .f.bad .err{display:block}
 .form .btn{grid-column:1/-1;justify-self:start;margin-top:6px}
-.done{border:1px solid var(--accent);border-radius:4px;padding:30px;background:var(--accent-wash)}
-.done h3{font-size:1.4rem;font-variation-settings:"opsz" 24,"wght" 700}
+.done{border:1px solid var(--accent);border-radius:4px;padding:32px;background:var(--accent-wash)}
+.done__ic{width:34px;height:34px;stroke:var(--accent);fill:none;stroke-width:1.6;margin-bottom:18px}
+.done h3{font-size:clamp(1.15rem,2vw,1.35rem);line-height:1.28;letter-spacing:-.02em;font-variation-settings:"opsz" 24,"wght" 700;max-width:26ch}
 .done p{margin-top:12px;color:var(--muted);font-size:14.5px;max-width:44ch}
-.done .btn{margin-top:22px}
+.done .btn{margin-top:24px}
+
+/* honeypot — must stay visually hidden but not display:none for some bots */
+.hp{position:absolute!important;left:-9999px!important;width:1px;height:1px;opacity:0;pointer-events:none}
+
+/* button loading state */
+.btn[data-busy="1"]{pointer-events:none;opacity:.72}
+.spin{width:15px;height:15px;border-radius:50%;border:1.7px solid rgba(255,255,255,.3);
+  border-top-color:currentColor;animation:sp .7s linear infinite;display:none;flex:none}
+.btn[data-busy="1"] .spin{display:block}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* error banner */
+.alert{grid-column:1/-1;display:none;gap:12px;align-items:flex-start;
+  border:1px solid #C9A79E;border-left:3px solid #9B3B2E;border-radius:3px;
+  background:#F7EDEA;padding:15px 17px;font-size:13.5px;line-height:1.55;color:#5E2A21}
+.alert.show{display:flex}
+.alert b{display:block;margin-bottom:3px;font-weight:600;color:#9B3B2E}
+.alert a{color:#9B3B2E;font-weight:600;text-decoration:underline}
+.formnote{grid-column:1/-1;font-size:12.5px;color:var(--muted);margin-top:-2px}
+.formnote a{color:var(--accent);font-weight:600}
 .aside{border-left:1px solid var(--rule);padding-left:clamp(20px,3vw,36px)}
 .aside h4{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);
   font-family:var(--s);font-weight:700}
@@ -995,6 +1016,11 @@ a.card{min-height:230px}
 
       <div class="rv a1">
         <form class="form" id="cform" novalidate>
+          <div class="alert" id="alert" role="alert" aria-live="assertive">
+            <span></span>
+            <div id="alertMsg"></div>
+          </div>
+
           <div class="f"><label for="n">Name</label><input id="n" name="name" type="text" placeholder="Your full name" autocomplete="name"><span class="err">Please enter your name.</span></div>
           <div class="f"><label for="e">Business email</label><input id="e" name="email" type="email" placeholder="you@company.com" autocomplete="email"><span class="err">Please enter a valid email address.</span></div>
           <div class="f"><label for="c">Company</label><input id="c" name="company" type="text" placeholder="Company name" autocomplete="organization"><span class="err">Please enter your company.</span></div>
@@ -1008,13 +1034,26 @@ a.card{min-height:230px}
               <option>Something else</option>
             </select><span class="err">Please choose an area.</span></div>
           <div class="f f--full"><label for="m">Message</label><textarea id="m" name="message" placeholder="Describe the process as it works today — who does what, in which tool, and how often."></textarea><span class="err">Please tell us a little about the process.</span></div>
-          <button type="submit" class="btn btn--dark">Start The Conversation</button>
+
+          <!-- Spam honeypot: hidden from people, tempting to bots. Never fill this in. -->
+          <div class="hp" aria-hidden="true">
+            <label for="botcheck">Leave this field empty</label>
+            <input id="botcheck" type="checkbox" name="botcheck" tabindex="-1" autocomplete="off">
+          </div>
+
+          <button type="submit" class="btn btn--dark" id="send">
+            <span class="spin" aria-hidden="true"></span>
+            <span id="sendTxt">Start The Conversation</span>
+          </button>
+
+          <p class="formnote">Prefer email? Write to <a href="mailto:mmoizmohsin@gmail.com">mmoizmohsin@gmail.com</a>.</p>
         </form>
 
-        <div class="done" id="done" hidden>
-          <h3>Message received.</h3>
-          <p>Thank you — we will read it properly and come back within one business day with next steps.</p>
-          <button class="btn btn--line" id="again" type="button">Send Another</button>
+        <div class="done" id="done" hidden tabindex="-1">
+          <svg class="done__ic" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13"/><path d="M10 16.5l4 4 8-9"/></svg>
+          <h3>Thank you. Your enquiry has been received. We'll be in touch shortly.</h3>
+          <p>We read every message properly and come back within one business day with next steps.</p>
+          <button class="btn btn--line" id="again" type="button">Send Another Enquiry</button>
         </div>
       </div>
     </div>
@@ -1240,29 +1279,117 @@ a.card{min-height:230px}
     if (e.key === "Escape") { document.body.classList.remove("open"); burger.setAttribute("aria-expanded","false"); }
   });
 
-  /* ── CONTACT FORM ────────────────────────────────────────────── */
-  var form = document.getElementById("cform"), done = document.getElementById("done");
+  /* ══════════════════════════════════════════════════════════════
+     CONTACT FORM → mmoizmohsin@gmail.com
+
+     Delivery runs through Web3Forms (https://web3forms.com).
+     STATUS: connected and live. Submissions arrive at the inbox above.
+
+     The access key below is PUBLIC BY DESIGN. It is not a password or
+     an API credential — it is only an alias for the destination inbox.
+     It cannot read your mail or be used for anything but delivering a
+     submission to mmoizmohsin@gmail.com. No SMTP details, no passwords
+     and no secret keys exist anywhere in this file.
+
+     To change the destination address later, create a new key at
+     web3forms.com for the new inbox and replace ACCESS_KEY below.
+     If the key is ever removed, the form refuses to submit and tells
+     the visitor to email directly — it never fakes a successful send.
+     ══════════════════════════════════════════════════════════════ */
+  var ACCESS_KEY = "8bfa7c14-a6d9-42e4-a38d-70c3d9728dff";
+  var MAILTO = "mmoizmohsin@gmail.com";
+
+  var form = document.getElementById("cform"),
+      done = document.getElementById("done"),
+      alertBox = document.getElementById("alert"),
+      alertMsg = document.getElementById("alertMsg"),
+      send = document.getElementById("send"),
+      sendTxt = document.getElementById("sendTxt");
+
+  function showAlert(title, body){
+    alertMsg.innerHTML = "<b>" + title + "</b>" + body;
+    alertBox.classList.add("show");
+    alertBox.scrollIntoView({behavior: reduce ? "auto" : "smooth", block:"center"});
+  }
+  function hideAlert(){ alertBox.classList.remove("show"); }
+  function busy(on){
+    send.setAttribute("data-busy", on ? "1" : "0");
+    send.disabled = on;
+    sendTxt.textContent = on ? "Sending…" : "Start The Conversation";
+  }
+
   if (form) {
     form.addEventListener("submit", function(e){
       e.preventDefault();
+      hideAlert();
+
+      /* validation */
       var ok = true;
-      form.querySelectorAll("input,select,textarea").forEach(function(el){
-        var wrapEl = el.closest(".f"), v = el.value.trim(), good = !!v;
+      form.querySelectorAll(".f input, .f select, .f textarea").forEach(function(el){
+        var box = el.closest(".f"), v = el.value.trim(), good = !!v;
         if (el.type === "email") good = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
-        wrapEl.classList.toggle("bad", !good);
+        box.classList.toggle("bad", !good);
         if (!good && ok) { el.focus(); ok = false; }
       });
       if (!ok) return;
-      form.hidden = true; done.hidden = false;
-      done.scrollIntoView({behavior: reduce ? "auto" : "smooth", block:"center"});
+
+      /* silently drop bots */
+      if (document.getElementById("botcheck").checked) return;
+
+      if (!ACCESS_KEY || ACCESS_KEY === "PASTE_YOUR_ACCESS_KEY_HERE") {
+        showAlert("This form is not connected yet.",
+          "Delivery has not been set up on this site, so nothing was sent. Please email us directly at <a href=\"mailto:" + MAILTO + "\">" + MAILTO + "</a>.");
+        return;
+      }
+
+      var d = new FormData(form);
+      var payload = {
+        access_key: ACCESS_KEY,
+        subject: "New Wanyxi enquiry — " + d.get("name") + " (" + d.get("company") + ")",
+        from_name: "Wanyxi Website",
+        name: d.get("name"),
+        email: d.get("email"),
+        company: d.get("company"),
+        "What they want to automate": d.get("what"),
+        message: d.get("message"),
+        "Submitted from": location.href
+      };
+
+      busy(true);
+
+      fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify(payload)
+      })
+      .then(function(res){ return res.json().catch(function(){ return {success:false}; }); })
+      .then(function(data){
+        busy(false);
+        if (data && data.success) {
+          form.hidden = true;
+          done.hidden = false;
+          done.focus({preventScroll:true});
+          done.scrollIntoView({behavior: reduce ? "auto" : "smooth", block:"center"});
+        } else {
+          showAlert("Your message could not be sent.",
+            "Something went wrong on our side and nothing was delivered. Please try again, or email us at <a href=\"mailto:" + MAILTO + "\">" + MAILTO + "</a>.");
+        }
+      })
+      .catch(function(){
+        busy(false);
+        showAlert("Your message could not be sent.",
+          "Check your connection and try again. If it keeps failing, email us at <a href=\"mailto:" + MAILTO + "\">" + MAILTO + "</a>.");
+      });
     });
+
     form.addEventListener("input", function(e){
       var f = e.target.closest(".f"); if (f) f.classList.remove("bad");
     });
+
     document.getElementById("again").addEventListener("click", function(){
-      form.reset(); form.hidden = false; done.hidden = true;
+      form.reset(); form.hidden = false; done.hidden = true; hideAlert(); busy(false);
       form.querySelectorAll(".f").forEach(function(f){ f.classList.remove("bad"); });
-      form.querySelector("input").focus();
+      document.getElementById("n").focus();
     });
   }
 })();

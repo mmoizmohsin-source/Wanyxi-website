@@ -13,6 +13,6 @@
  */
 window.WANYXI_DASHBOARD = {
   mode: "supabase",
-  supabaseUrl: "https://YOUR-PROJECT-REF.supabase.co",
+  supabaseUrl: "https://kkuiwwbliibtpctuujtq.supabase.co",
   supabaseKey: "sb_publishable_EY0tJAOs_plyGri0dlDt6A_h7WXaV2O"
 };

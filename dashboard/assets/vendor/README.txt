@@ -1,0 +1,2 @@
+
+Wanyxi dashboard dependencies

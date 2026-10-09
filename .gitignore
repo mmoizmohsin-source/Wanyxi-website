@@ -1,0 +1,10 @@
+# Lead data, engine and secrets stay on your computer, not in GitHub.
+*.csv
+*.py
+seed_dash_leads.sql
+.env
+.env.*
+engine/
+__pycache__/
+.DS_Store
+.vercel

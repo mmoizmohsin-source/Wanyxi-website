@@ -13,3 +13,115 @@
 .gate .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
 .gate a.btn{text-decoration:none}
 @media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* ================================================
+   WANYXI Intelligence Brief — Nova Client Dashboard
+   ================================================ */
+
+.wanyxi-intelligence {
+  margin: 16px 0;
+  padding: 22px 26px;
+  background: var(--char, #1A1916);
+  color: #FBF8F2;
+  border: 1px solid var(--rule-dk, #33302A);
+  border-radius: 5px;
+}
+
+.wanyxi-intelligence__heading {
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255,255,255,.16);
+}
+
+.wanyxi-intelligence__eyebrow {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--accent-lt, #79BE9D);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .14em;
+}
+
+.wanyxi-intelligence__heading h2 {
+  color: #FFFFFF;
+  font-size: clamp(19px, 2vw, 25px);
+  line-height: 1.2;
+  margin-bottom: 7px;
+}
+
+.wanyxi-intelligence__heading p {
+  color: #B9B6AD;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.wanyxi-intelligence__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.wanyxi-intelligence__item {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 15px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+
+.wanyxi-intelligence__number {
+  color: var(--accent-lt, #79BE9D);
+  font-family: var(--d, Georgia, serif);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.wanyxi-intelligence__content h3 {
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-bottom: 6px;
+}
+
+.wanyxi-intelligence__content p {
+  color: #CEC9BF;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.wanyxi-intelligence__evidence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.wanyxi-intelligence__chip {
+  display: inline-block;
+  padding: 5px 9px;
+  background: rgba(121,190,157,.12);
+  border: 1px solid rgba(121,190,157,.22);
+  border-radius: 3px;
+  color: #BDE3CD;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.wanyxi-intelligence__footer {
+  padding-top: 12px;
+  color: #A9A69E;
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  .wanyxi-intelligence {
+    padding: 18px 16px;
+  }
+
+  .wanyxi-intelligence__item {
+    grid-template-columns: 25px minmax(0, 1fr);
+    gap: 10px;
+  }
+}

@@ -1,69 +1,89 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Wanyxi Client Workspace</title>
-<meta name="robots" content="noindex, nofollow">
-<meta name="description" content="Wanyxi client workspace.">
-<link rel="icon" type="image/png" href="/dashboard/assets/wanyxi-logo.png">
-<link rel="stylesheet" href="/dashboard/assets/styles.css">
-<link rel="stylesheet" href="/dashboard/client/client.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Wanyxi Client Workspace</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Wanyxi client workspace.">
+
+  <link rel="icon" type="image/png" href="/dashboard/assets/wanyxi-logo.png">
+  <link rel="stylesheet" href="/dashboard/assets/styles.css">
+  <link rel="stylesheet" href="/dashboard/client/client.css">
 </head>
+
 <body>
-<div class="app">
-  <aside class="side">
-    <img class="logo" src="/dashboard/assets/wanyxi-logo.png" alt="Wanyxi — Connect | Automate | Scale">
-    <div class="kicker">Client Workspace</div>
-    <nav class="nav" id="nav" aria-label="Workspace sections" hidden>
-      <button type="button" data-view="overview" class="on" aria-current="page">
-        <svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Overview</button>
-      <button type="button" data-view="datasets">
-        <svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6M4.5 12v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6"/></svg>Datasets</button>
-      <button type="button" data-view="analysis">
-        <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Data Analysis</button>
-      <button type="button" data-view="reports">
-        <svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg>Reports</button>
-      <button type="button" data-view="automations">
-        <svg viewBox="0 0 24 24"><path d="M13 3L5 13h6l-1 8 8-10h-6z"/></svg>Automations</button>
-    </nav>
-    <div class="srcbox">
-      <span class="kicker">Workspace</span>
-      <b id="wsName">Wanyxi</b>
-      <small id="wsMeta">Not signed in</small>
-      <small class="who" id="who" hidden>Signed in as <b id="whoName"></b></small>
-      <div class="pw">Connect · Automate · Scale</div>
-    </div>
-  </aside>
+  <div class="app">
+    <aside class="side">
+      <img
+        class="logo"
+        src="/dashboard/assets/wanyxi-logo.png"
+        alt="Wanyxi — Connect | Automate | Scale"
+      >
 
-  <main id="main">
-    <!-- Shown while loading, for sign-in, and for any no-access or error state -->
-    <section id="gate" class="gate" aria-live="polite">
       <div class="kicker">Client Workspace</div>
-      <h2>Loading…</h2>
-      <p>Preparing your workspace.</p>
-    </section>
 
-    <div id="app" hidden>
-      <header class="head">
-        <div>
-          <h1 id="title">Overview</h1>
-          <p class="sub" id="subtitle"></p>
-        </div>
-        <div class="tools">
-          <button class="btn btn--line" id="signout" type="button" data-signout>Sign out</button>
-        </div>
-      </header>
-      <section class="view" id="view" aria-live="polite"></section>
-    </div>
-  </main>
-</div>
+      <nav class="nav" id="nav" aria-label="Workspace sections" hidden>
+        <button type="button" data-view="overview" class="on" aria-current="page">
+          Overview
+        </button>
+        <button type="button" data-view="sales">Sales</button>
+        <button type="button" data-view="products">Products</button>
+        <button type="button" data-view="customers">Customers</button>
+        <button type="button" data-view="payments">Payments</button>
+        <button type="button" data-view="operations">Operations</button>
+        <button type="button" data-view="insights">Insights</button>
 
-<script src="/dashboard/config.js"></script>
-<script src="/dashboard/assets/vendor/supabase-2.117.1.js"></script>
-<script src="/dashboard/client/client.js"></script>
+        <button type="button" data-view="datasets">Datasets</button>
+        <button type="button" data-view="analysis">Data Analysis</button>
+        <button type="button" data-view="reports">Reports</button>
+        <button type="button" data-view="automations">Automations</button>
+      </nav>
+
+      <div class="srcbox">
+        <span class="kicker">Workspace</span>
+        <b id="wsName">Wanyxi</b>
+        <small id="wsMeta">Not signed in</small>
+        <small class="who" id="who" hidden>
+          Signed in as <b id="whoName"></b>
+        </small>
+        <div class="pw">Connect · Automate · Scale</div>
+      </div>
+    </aside>
+
+    <main id="main">
+      <section id="gate" class="gate" aria-live="polite">
+        <div class="kicker">Client Workspace</div>
+        <h2>Loading…</h2>
+        <p>Preparing your workspace.</p>
+      </section>
+
+      <div id="app" hidden>
+        <header class="head">
+          <div>
+            <h1 id="title">Overview</h1>
+            <p class="sub" id="subtitle"></p>
+          </div>
+
+          <div class="tools">
+            <button class="btn btn--line" id="signout" type="button" data-signout>
+              Sign out
+            </button>
+          </div>
+        </header>
+
+        <section class="view" id="view" aria-live="polite"></section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Load dependencies in order -->
+  <script src="/dashboard/config.js"></script>
+  <script src="/dashboard/assets/vendor/supabase-2.117.1.js"></script>
+  <script src="/dashboard/client/nova-analytics.js"></script>
+  <script src="/dashboard/client/nova-views.js"></script>
+  <script src="/dashboard/client/client.js"></script>
 </body>
 </html>
-  </script>
-</body>
-</html>
+

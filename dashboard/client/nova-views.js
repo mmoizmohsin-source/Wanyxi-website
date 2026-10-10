@@ -192,32 +192,125 @@
   /* ── Views ───────────────────────────────────────────────────────── */
   var R = {};
 
-  R.overview = function (host, A) {
-    var S = A.sales, P = A.payments.totals, O = A.orders;
-    host.appendChild(kpis([
-      { label: "Orders", value: fInt(O.all), sub: fInt(O.active) + " active" },
-      { label: "Customers", value: fInt(A.customers.total), sub: fInt(A.customers.buyers) + " with active orders" },
-      { label: "Gross sales", value: fMoney(S.gross), sub: "before discounts" },
-      { label: "Net sales", value: fMoney(S.net), sub: fMoney(S.discount) + " discounts (" + fPct(S.discountRate) + ")" },
-      { label: "Collected payments", value: fMoney(P.collected), sub: fPct(A.payments.successRate) + " of payments succeeded" },
-      { label: "Average order value", value: fMoney2(S.aov), sub: "net sales per active order" },
-      { label: "Units sold", value: fInt(S.units), sub: fNum(S.unitsPerOrder, 2) + " per order" },
-      { label: "Cancelled / returned / failed", value: fPct(O.all ? (O.cancelled + O.returned + O.failed) / O.all : null), sub: fInt(O.cancelled + O.returned + O.failed) + " orders" },
-      { label: "Average rating", value: fNum(A.ops.ratings.avg, 2), sub: fInt(A.ops.ratings.n) + " rated orders" },
-      { label: "Estimated gross profit", value: fMoney(A.profit.profit), sub: fPct(A.profit.margin) + " margin on costed lines" }
-    ]));
-    var c = section(host, "Net sales by month", "Active orders", true);
-    chart(c, A.monthly.map(function (m) { return { label: m.month, value: m.net }; }), { title: "Net sales by month" });
-    if (A.insights.length) {
-      var ic = section(host, "Key findings", "Open Insights for all of them", true);
-      var list = el("div", "recs");
-      A.insights.slice(0, 3).forEach(function (i) {
-        var row = el("div", "rec"); row.appendChild(el("b", "", i.title)); row.appendChild(el("span", "", i.text)); list.appendChild(row);
-      });
-      ic.appendChild(list);
+  
+R.overview = function (host, A) {
+  var S = A.sales, P = A.payments.totals, O = A.orders;
+  var findings = A.insights || [];
+
+  // Four executive KPIs
+  host.appendChild(kpis([
+    {
+      label: "Net Sales",
+      value: fMoney(S.net),
+      sub: fMoney(S.discount) + " discounts (" +
+        fPct(S.discountRate) + ")"
+    },
+    {
+      label: "Orders",
+      value: fInt(O.all),
+      sub: fInt(O.active) + " active orders"
+    },
+    {
+      label: "Customers",
+      value: fInt(A.customers.total),
+      sub: fInt(A.customers.buyers) + " active buyers"
+    },
+    {
+      label: "Estimated Gross Profit",
+      value: fMoney(A.profit.profit),
+      sub: fPct(A.profit.margin) + " margin on costed lines"
     }
-    notesCard(host, A);
-  };
+  ]));
+
+  // WANYXI Intelligence Brief
+  var intelligence = el("section", "wanyxi-intelligence");
+
+  var heading = el("div", "wanyxi-intelligence__heading");
+  heading.appendChild(
+    el("span", "wanyxi-intelligence__eyebrow",
+       "WANYXI BUSINESS INTELLIGENCE")
+  );
+  heading.appendChild(
+    el("h2", "", "What deserves your attention")
+  );
+  heading.appendChild(
+    el("p", "",
+       "Priority findings based on Nova's business data.")
+  );
+  intelligence.appendChild(heading);
+
+  var list = el("div", "wanyxi-intelligence__list");
+
+  if (findings.length) {
+    findings.slice(0, 3).forEach(function (item, index) {
+      var row = el("div", "wanyxi-intelligence__item");
+
+      row.appendChild(
+        el("span", "wanyxi-intelligence__number",
+           String(index + 1).padStart(2, "0"))
+      );
+
+      var content = el("div", "wanyxi-intelligence__content");
+      content.appendChild(el("h3", "", item.title));
+      content.appendChild(el("p", "", item.text));
+
+      if (item.metrics && item.metrics.length) {
+        var evidence = el(
+          "div",
+          "wanyxi-intelligence__evidence"
+        );
+
+        item.metrics.slice(0, 3).forEach(function (metric) {
+          var chip = el(
+            "span",
+            "wanyxi-intelligence__chip"
+          );
+          chip.textContent = metric[0] + ": " + metric[1];
+          evidence.appendChild(chip);
+        });
+
+        content.appendChild(evidence);
+      }
+
+      row.appendChild(content);
+      list.appendChild(row);
+    });
+  } else {
+    list.appendChild(
+      el("p", "",
+         "No priority findings are available for this dataset.")
+    );
+  }
+
+  intelligence.appendChild(list);
+
+  intelligence.appendChild(
+    el("div", "wanyxi-intelligence__footer",
+       "Evidence-based analytical findings. Not predictions or live AI-generated advice.")
+  );
+
+  host.appendChild(intelligence);
+
+  // Business performance chart
+  var chartCard = section(
+    host,
+    "Business Performance",
+    "Monthly net sales from active orders",
+    true
+  );
+
+  chart(
+    chartCard,
+    A.monthly.map(function (m) {
+      return { label: m.month, value: m.net };
+    }),
+    { title: "Net sales by month" }
+  );
+
+  // Preserve existing data-quality explanations
+  notesCard(host, A);
+};
+
 
   R.sales = function (host, A) {
     host.appendChild(kpis([

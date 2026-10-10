@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wanyxi Lead Intelligence</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Wanyxi Lead Intelligence — scored leads from the Wanyxi rule-based scoring engine.">
+<link rel="icon" type="image/png" href="assets/wanyxi-logo.png">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <img class="logo" src="assets/wanyxi-logo.png" alt="Wanyxi — Connect | Automate | Scale">
+    <div class="kicker">Lead Intelligence</div>
+    <nav class="nav" id="nav" aria-label="Dashboard sections">
+      <button data-view="overview" class="on" aria-current="page">
+        <svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Overview</button>
+      <button data-view="leads">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Leads<span class="count" id="navCount"></span></button>
+      <button data-view="queue">
+        <svg viewBox="0 0 24 24"><path d="M4 6h3M4 12h3M4 18h3M10 6h10M10 12h10M10 18h6"/><path d="M17 16l2 2 3-4"/></svg>Action Queue</button>
+      <button data-view="method">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v4l2.5 2.5"/></svg>Scoring Method</button>
+    </nav>
+    <div class="srcbox">
+      <span class="kicker" style="color:var(--muted-dk)">Data source</span>
+      <b id="srcName">wanyxi_scored_leads.csv</b>
+      <small id="srcMeta">Loading…</small>
+      <small class="who" id="who" hidden>Signed in as <b id="whoName"></b></small>
+      <div class="pw">Connect · Automate · Scale</div>
+    </div>
+  </aside>
+
+  <main id="main">
+    <!-- Shown until data loads, or if loading fails -->
+    <section id="gate" class="gate" aria-live="polite">
+      <div class="kicker">Lead Intelligence</div>
+      <h2>Loading scored leads…</h2>
+      <p>Preparing the dashboard.</p>
+    </section>
+
+    <div id="app" hidden>
+      <header class="head">
+        <div>
+          <h1 id="title">Lead Intelligence</h1>
+          <p class="sub" id="subtitle"></p>
+        </div>
+        <div class="tools">
+          <span class="status" id="status"><i></i><span></span></span>
+          <button class="btn btn--line" id="reload" title="Re-read the CSV file from disk">
+            <svg viewBox="0 0 16 16"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3"/></svg>Reload data</button>
+          <button class="btn btn--dark" id="export" title="Download the leads currently shown, as CSV">
+            <svg viewBox="0 0 16 16"><path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M2.5 13.5h11"/></svg>Export view</button>
+          <button class="btn btn--line" id="signout" type="button" hidden>Sign out</button>
+        </div>
+      </header>
+
+      <form class="filters" id="filters" role="search" onsubmit="return false">
+        <label class="search"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+          <input id="fq" type="search" placeholder="Search company or lead ID" aria-label="Search company or lead ID" autocomplete="off"></label>
+        <select id="fpriority" aria-label="Filter by priority"></select>
+        <select id="findustry" aria-label="Filter by industry"></select>
+        <select id="fservice" aria-label="Filter by service interest"></select>
+        <select id="fsource" aria-label="Filter by lead source"></select>
+        <button class="btn btn--line" id="freset" type="button">Reset</button>
+        <span class="fcount" id="fcount"></span>
+      </form>
+
+      <!-- ═══════ OVERVIEW ═══════ -->
+      <section class="view" id="v-overview" aria-label="Overview">
+        <div class="kpis" id="kpis"></div>
+        <div class="ov">
+          <div class="card g4">
+            <div class="sh"><h2>Lead priority</h2><span>Click a band to see its leads</span></div>
+            <div id="priority"></div>
+          </div>
+          <div class="card g4">
+            <div class="sh"><h2>Service demand</h2><span>Leads requesting each service</span></div>
+            <div id="services"></div>
+          </div>
+          <div class="card g4">
+            <div class="sh"><h2>Lead sources</h2><span>Volume, then avg score</span></div>
+            <div id="sources"></div>
+          </div>
+          <div class="card g7 ind">
+            <div class="sh"><h2>Industry performance</h2>
+              <div class="seg" id="indSort" role="group" aria-label="Sort industries">
+                <button data-k="count" class="on">By volume</button><button data-k="avg">By avg score</button></div>
+            </div>
+            <div id="industries"></div>
+          </div>
+          <div class="dark g5">
+            <div class="dhead"><div><div class="kicker">Computed from the current view</div><h2>Wanyxi Intelligence</h2></div>
+              <button class="btn btn--light" id="allIns">All insights</button></div>
+            <div class="intel" id="insights"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════ LEADS ═══════ -->
+      <section class="view" id="v-leads" aria-label="Lead table" hidden>
+        <div class="tw" id="tableWrap">
+          <table>
+            <thead><tr id="thead"></tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="empty" id="empty" hidden>
+            <h3>No leads match these filters</h3>
+            <p>Try a different search term, or clear the filters to see all scored leads.</p>
+            <button class="btn btn--dark" data-reset type="button">Clear filters</button>
+          </div>
+        </div>
+        <div class="tfoot"><span id="tinfo"></span><span>Click any row for the full score breakdown.</span></div>
+      </section>
+
+      <!-- ═══════ ACTION QUEUE (recommendation engine) ═══════ -->
+      <section class="view" id="v-queue" aria-label="Action queue" hidden>
+        <div id="queue" class="queue"></div>
+      </section>
+
+      <!-- ═══════ METHOD ═══════ -->
+      <section class="view" id="v-method" aria-label="Scoring method" hidden>
+        <div class="method" id="method"></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle" tabindex="-1">
+  <div class="dtop"><div><div class="kicker" id="dKick"></div><h2 id="dTitle"></h2><p id="dSub"></p></div>
+    <button class="x" data-close aria-label="Close">✕</button></div>
+  <div class="dbody" id="dBody"></div>
+  <div class="dact" id="dAct"></div>
+</aside>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="mc" tabindex="-1"><button class="x" data-close aria-label="Close">✕</button>
+    <div class="kicker" id="mKick" style="color:var(--accent)"></div><h2 id="mTitle"></h2><div id="mBody"></div></div>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="config.js"></script>
+<script src="assets/vendor/supabase-2.117.1.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

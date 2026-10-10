@@ -1,0 +1,11 @@
+# Never publish lead data, engine code, SQL or secrets as website files.
+*.csv
+*.py
+*.sql
+*.env
+.env*
+engine/
+supabase/
+backup*/
+README*.md
+DEPLOY*.md

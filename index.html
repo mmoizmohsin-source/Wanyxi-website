@@ -1078,6 +1078,7 @@ a.card{min-height:230px}
         <a href="#/faq">FAQ</a>
         <a href="#/features">Features</a>
         <a href="#/contact">Contact</a>
+        <a href="/dashboard/">Dashboard</a>
       </nav>
     </div>
     <div class="foot__b">
@@ -1087,7 +1088,6 @@ a.card{min-height:230px}
   </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
   "use strict";
@@ -1280,8 +1280,10 @@ a.card{min-height:230px}
      CONTACT FORM → wanyxi.consult@gmail.com
 
      Delivery runs through Web3Forms (https://web3forms.com).
-     STATUS: connected. The ACCESS_KEY below was issued for
-     wanyxi.consult@gmail.com, so submissions are delivered to that inbox.
+     ACTION REQUIRED: the ACCESS_KEY below was issued for the previous inbox.
+     Web3Forms ties each key to one address, so create a new key for
+     wanyxi.consult@gmail.com at web3forms.com and paste it into ACCESS_KEY.
+     Until then, submissions still arrive at the previous inbox.
 
      The access key below is PUBLIC BY DESIGN. It is not a password or
      an API credential — it is only an alias for the destination inbox.
@@ -1294,71 +1296,8 @@ a.card{min-height:230px}
      If the key is ever removed, the form refuses to submit and tells
      the visitor to email directly — it never fakes a successful send.
      ══════════════════════════════════════════════════════════════ */
-  var ACCESS_KEY = "f7d0d030-7706-43a8-84d8-11e1a86d30b1";
+  var ACCESS_KEY = "8bfa7c14-a6d9-42e4-a38d-70c3d9728dff";
   var MAILTO = "wanyxi.consult@gmail.com";
-
-  /* ══════════════════════════════════════════════════════════════
-     SUPABASE — every valid enquiry is also stored in the "inquiries" table.
-
-     Paste your two values below (Supabase dashboard → Project Settings → API).
-     The PUBLISHABLE (anon) key is meant to be public: it is only allowed to do
-     what your Row Level Security policies permit (insert-only on "inquiries").
-     NEVER paste a service_role or secret key here — if one is detected, the
-     code refuses to use it.
-
-     Until both values are filled in, nothing is sent to Supabase and the
-     form behaves exactly as before (Web3Forms email only).
-     ══════════════════════════════════════════════════════════════ */
-  var SUPABASE_URL = "https://kkuiwwbliibtpctuujtq.supabase.co";
-  var SUPABASE_PUBLISHABLE_KEY = "sb_publishable_EY0tJAOs_plyGri0dlDt6A_h7WXaV2O";
-  var SUPABASE_WAIT_MS = 8000;      /* never keep the visitor waiting longer than this on the database */
-
-  function looksPrivileged(k){
-    if (/^sb_secret_/.test(k)) return true;
-    try {
-      var p = JSON.parse(atob(k.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-      return p && p.role === "service_role";
-    } catch (err) { return false; }
-  }
-
-  var sb = null;
-  try {
-    var urlOk = /^https:\/\/[^\s]+$/.test(SUPABASE_URL);
-    var keyOk = !!SUPABASE_PUBLISHABLE_KEY && SUPABASE_PUBLISHABLE_KEY.indexOf("PASTE_") !== 0;
-    if (urlOk && keyOk) {
-      if (looksPrivileged(SUPABASE_PUBLISHABLE_KEY)) {
-        console.error("[Wanyxi] A privileged Supabase key was detected and will NOT be used. Use the publishable/anon key only.");
-      } else if (window.supabase && typeof window.supabase.createClient === "function") {
-        sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY,
-          { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
-      } else {
-        console.error("[Wanyxi] Supabase library did not load; enquiries will not be stored.");
-      }
-    }
-  } catch (err) { console.error("[Wanyxi] Supabase init failed:", err); sb = null; }
-
-  var savedSig = null;   /* fingerprint of the last enquiry stored, so a retry never creates a duplicate row */
-
-  /* Resolves true/false. NEVER rejects and NEVER shows anything to the visitor. */
-  function saveInquiry(rec){
-    var sig = JSON.stringify(rec);
-    if (sig === savedSig) return Promise.resolve(true);
-    if (!sb) { console.warn("[Wanyxi] Supabase is not configured — enquiry was not stored."); return Promise.resolve(false); }
-
-    var insert;
-    try {
-      insert = Promise.resolve(sb.from("inquiries").insert(rec)).then(function(res){
-        if (res && res.error) { console.error("[Wanyxi] Supabase insert failed:", res.error); return false; }
-        savedSig = sig; return true;
-      });
-    } catch (err) { console.error("[Wanyxi] Supabase insert threw:", err); return Promise.resolve(false); }
-    insert = insert.catch(function(err){ console.error("[Wanyxi] Supabase request failed:", err); return false; });
-
-    var limit = new Promise(function(resolve){
-      setTimeout(function(){ console.error("[Wanyxi] Supabase insert timed out after " + SUPABASE_WAIT_MS + "ms."); resolve(false); }, SUPABASE_WAIT_MS);
-    });
-    return Promise.race([insert, limit]);
-  }
 
   var form = document.getElementById("cform"),
       done = document.getElementById("done"),
@@ -1418,22 +1357,12 @@ a.card{min-height:230px}
 
       busy(true);
 
-      /* Supabase: same validated data, started in parallel with the Web3Forms email */
-      var saved = saveInquiry({
-        name: String(d.get("name")).trim(),
-        email: String(d.get("email")).trim(),
-        company: String(d.get("company")).trim(),
-        what: String(d.get("what")).trim(),
-        message: String(d.get("message")).trim()
-      });
-
       fetch("https://api.web3forms.com/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify(payload)
       })
       .then(function(res){ return res.json().catch(function(){ return {success:false}; }); })
-      .then(function(data){ return saved.then(function(){ return data; }); })
       .then(function(data){
         busy(false);
         if (data && data.success) {
@@ -1458,7 +1387,7 @@ a.card{min-height:230px}
     });
 
     document.getElementById("again").addEventListener("click", function(){
-      form.reset(); form.hidden = false; done.hidden = true; hideAlert(); busy(false); savedSig = null;
+      form.reset(); form.hidden = false; done.hidden = true; hideAlert(); busy(false);
       form.querySelectorAll(".f").forEach(function(f){ f.classList.remove("bad"); });
       document.getElementById("n").focus();
     });

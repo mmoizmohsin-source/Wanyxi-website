@@ -957,7 +957,7 @@
       var email = session.user && session.user.email || "this account";
       return client.from("dash_admins").select("display_name").maybeSingle().then(function (a) {
         if (a.error) throw a.error;
-        if (!a.data) return gate("notadmin", email);
+        if (!a.data) return routeNonAdmin(client, session, email);
         SB_USER = { name: a.data.display_name, email: email };
         return Promise.all([fetchAllLeads(client), fetchLastImport(client)])
           .then(function (res) {
@@ -977,6 +977,19 @@
       if (/JWT|token|session/i.test(m)) return client.auth.signOut();
       gate("sberror", "Supabase returned: " + esc(m));
     });
+  }
+
+  // A signed-in account that is not an administrator is sent to the client
+  // workspace ONLY if the database confirms it has a client membership.
+  // The query is subject to Row Level Security, so it can only ever return
+  // the caller's own membership rows. Any error or empty result keeps the
+  // original "No access" screen. The client page re-verifies on its own.
+  function routeNonAdmin(client, session, email) {
+    return client.from("workspace_members").select("workspace_id").eq("user_id", session.user.id).eq("role", "client").limit(1)
+      .then(function (m) {
+        if (!m.error && m.data && m.data.length) { location.replace("/dashboard/client/"); return; }
+        return gate("notadmin", email);
+      }, function () { return gate("notadmin", email); });
   }
 
   function fetchAllLeads(client) {

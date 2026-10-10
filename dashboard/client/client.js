@@ -242,8 +242,11 @@ return c.from("workspace_members")
 
         var v = (location.hash || "").replace("#", "");
         return go(VIEWS[v] ? v : "overview");
+    
       });
   });
+}).catch(fail);
+}
 
 
   /* ── Views ───────────────────────────────────────────────────────── */

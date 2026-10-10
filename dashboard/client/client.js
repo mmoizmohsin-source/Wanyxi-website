@@ -204,24 +204,47 @@
         return c.auth.signOut().then(function () { gate("login", "Your session has expired. Please sign in again."); },
                                      function () { gate("login", "Your session has expired. Please sign in again."); });
       }
-      var user = r.data.user;
-      return c.from("workspace_members").select("workspace_id, role, workspaces(id, name)").eq("user_id", user.id)
-        .then(function (m) {
-          if (m.error) throw m.error;
-          var rows = m.data || [];
-          if (!rows.length) return gate("noaccess", user.email, "none");
-          var mine = rows.filter(function (x) { return x.role === "client" && x.workspaces; });
-          if (!mine.length) return gate("noaccess", user.email, "notclient");
-          if (mine.length > 1) return gate("noaccess", user.email, "multiple");
-          WS = { id: mine[0].workspace_id, name: mine[0].workspaces.name || "Workspace" };
-          $("gate").hidden = true;
-          $("app").hidden = false;
-          chrome(true, user.email);
-          var v = (location.hash || "").replace("#", "");
-          return go(VIEWS[v] ? v : "overview");
-        });
-    }).catch(fail);
-  }
+      
+var user = r.data.user;
+
+return c.from("workspace_members")
+  .select("workspace_id, role")
+  .eq("user_id", user.id)
+  .then(function (m) {
+    if (m.error) throw m.error;
+
+    var rows = m.data || [];
+    if (!rows.length) return gate("noaccess", user.email, "none");
+
+    var mine = rows.filter(function (x) {
+      return x.role === "client" && x.workspace_id;
+    });
+
+    if (!mine.length) return gate("noaccess", user.email, "notclient");
+    if (mine.length > 1) return gate("noaccess", user.email, "multiple");
+
+    return c.from("workspaces")
+      .select("id, name")
+      .eq("id", mine[0].workspace_id)
+      .maybeSingle()
+      .then(function (w) {
+        if (w.error) throw w.error;
+        if (!w.data) return gate("noaccess", user.email, "workspace-unavailable");
+
+        WS = {
+          id: mine[0].workspace_id,
+          name: w.data.name || "Workspace"
+        };
+
+        $("gate").hidden = true;
+        $("app").hidden = false;
+        chrome(true, user.email);
+
+        var v = (location.hash || "").replace("#", "");
+        return go(VIEWS[v] ? v : "overview");
+      });
+  });
+
 
   /* ── Views ───────────────────────────────────────────────────────── */
   function go(view) {

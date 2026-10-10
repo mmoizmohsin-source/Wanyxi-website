@@ -134,7 +134,9 @@
         id: o.order_id, cust: o.customer_id, month: monthKey(o.order_date), wd: weekday(o.order_date),
         status: status, cls: classifyOrder(o.order_status), city: str(o.shipping_city) || "Unspecified",
         ship: num(o.shipping_cost), dd: num(o.delivery_days), rating: num(o.customer_rating),
-        gross: 0, net: 0, units: 0, lines: 0, collected: 0, pending: 0, failed: 0, payN: 0
+        date: str(o.order_date).slice(0, 10),
+        gross: 0, net: 0, units: 0, lines: 0, collected: 0, pending: 0, failed: 0, payN: 0,
+        costRev: 0, cost: 0
       };
     });
     var ordById = Object.create(null);
@@ -179,6 +181,8 @@
         var lcost = q * cost;
         pa.costRev += n; pa.cost += lcost; ca.costRev += n; ca.cost += lcost;
         T.profitRev += n; T.cost += lcost;
+        o.costRev += n; o.cost += lcost;
+        pa.grossCostRev = (pa.grossCostRev || 0) + g;
       } else { T.noCostRev += n; }
     });
     ord.forEach(function (o) { if (!o.lines) quality.ordersWithoutItems++; if (!o.month) quality.undatedOrders++; });
@@ -236,22 +240,25 @@
         else rec.neither++;
       }
     });
-    var unc = { count: 0, value: 0, withPending: 0, failedOnly: 0, noPaymentRecord: 0 };
+    var unc = { count: 0, value: 0, withPending: 0, failedOnly: 0, noPaymentRecord: 0, orders: [] };
     active.forEach(function (o) {
       if (o.collected > 0) return;
       unc.count++; unc.value += o.net;
-      if (!o.payN) unc.noPaymentRecord++;
-      else if (o.pending > 0) unc.withPending++;
-      else if (o.failed > 0) unc.failedOnly++;
+      var reason = "other";
+      if (!o.payN) { unc.noPaymentRecord++; reason = "no payment record"; }
+      else if (o.pending > 0) { unc.withPending++; reason = "payment pending"; }
+      else if (o.failed > 0) { unc.failedOnly++; reason = "failed only"; }
+      unc.orders.push({ id: o.id, date: o.date, city: o.city, net: o.net, reason: reason });
     });
+    unc.orders.sort(function (a, b) { return b.net - a.net; });
 
     /* Sales over time and by city */
     var monthMap = Object.create(null), cityMap = Object.create(null), wdMap = Object.create(null);
     var shipSum = 0, shipN = 0;
     active.forEach(function (o) {
       if (o.month) {
-        var m = get(monthMap, o.month, function () { return { month: o.month, orders: 0, gross: 0, net: 0 }; });
-        m.orders++; m.gross += o.gross; m.net += o.net;
+        var m = get(monthMap, o.month, function () { return { month: o.month, orders: 0, gross: 0, net: 0, costRev: 0, cost: 0 }; });
+        m.orders++; m.gross += o.gross; m.net += o.net; m.costRev += o.costRev; m.cost += o.cost;
       }
       var c = get(cityMap, o.city, function () { return { city: o.city, orders: 0, net: 0 }; });
       c.orders++; c.net += o.net;
@@ -262,6 +269,14 @@
       if (o.ship !== null && o.ship >= 0) { shipSum += o.ship; shipN++; }
     });
     var monthly = values(monthMap).sort(function (a, b) { return a.month < b.month ? -1 : 1; });
+    monthly.forEach(function (m) {
+      m.discountRate = ratio(m.gross - m.net, m.gross);
+      m.profit = m.costRev ? m.costRev - m.cost : null;
+      m.margin = m.costRev ? (m.costRev - m.cost) / m.costRev : null;
+    });
+    var dated = ord.filter(function (o) { return /^\d{4}-\d{2}-\d{2}$/.test(o.date); })
+      .map(function (o) { return o.date; }).sort();
+    var dateRange = dated.length ? { first: dated[0], last: dated[dated.length - 1], undated: ord.length - dated.length } : null;
     var cities = values(cityMap).sort(function (a, b) { return b.net - a.net; });
     var weekdays = values(wdMap).sort(function (a, b) { return a.i - b.i; });
 
@@ -379,6 +394,7 @@
     var A = {
       version: VERSION,
       counts: { customers: customers.length, products: products.length, orders: ord.length, items: items.length, payments: payments.length },
+      dateRange: dateRange,
       quality: quality,
       assumptions: { discount: disc, orderStatuses: values(statusMap).sort(function (a, b) { return b.count - a.count; }),
                      paymentStatuses: values(pstatMap).sort(function (a, b) { return b.count - a.count; }), reconciliation: rec },
@@ -392,6 +408,13 @@
       products: { top: productList.slice().sort(function (a, b) { return b.units - a.units; }).slice(0, 10),
                   topRevenue: productList.slice().sort(function (a, b) { return b.net - a.net; }).slice(0, 10),
                   bottom: productList.slice().sort(function (a, b) { return a.net - b.net; }).slice(0, 5),
+                  all: productList.map(function (p) {
+                    p.costed = p.costRev > 0;
+                    p.listCost = prodById[p.id] ? num(prodById[p.id].unit_cost) : null;
+                    p.listPrice = prodById[p.id] ? num(prodById[p.id].selling_price) : null;
+                    p.profitAtGross = p.costed ? (p.grossCostRev || 0) - p.cost : null;
+                    return p;
+                  }),
                   sold: productList.length, catalog: products.length,
                   neverSold: products.length - productList.filter(function (p) { return prodById[p.id]; }).length },
       categories: categoryList,
@@ -405,8 +428,121 @@
                   uncollected: unc, successRate: ratio(P.collectedCount, P.count) }
     };
     A.ops = ops;
+    A.anomalies = findAnomalies(items, products, ordById, prodById, disc, T.net);
     A.insights = buildInsights(A);
     return A;
+  }
+
+  /* ── Anomalies: values far outside the data's own range (flagged, never removed) ── */
+  function findAnomalies(items, products, ordById, prodById, disc, totalNet) {
+    var qs = [];
+    items.forEach(function (it) { var q = num(it.quantity); if (q !== null && q > 0) qs.push(q); });
+    qs.sort(function (a, b) { return a - b; });
+    // Robust threshold: the median is not pulled up by the outliers it is meant to catch.
+    var median = pctile(qs, 0.5);
+    var threshold = median === null ? null : Math.max(20, median * 20);
+    var p99 = threshold === null ? null : pctile(qs.filter(function (q) { return q <= threshold; }), 0.99);
+    var lines = [], activeNet = 0;
+    if (threshold !== null) items.forEach(function (it) {
+      var q = num(it.quantity), p = num(it.unit_price);
+      if (q === null || q <= threshold) return;
+      var o = ordById[it.order_id], prod = prodById[it.product_id];
+      var d = num(it.discount_pct), f = d === null ? 0 : d / disc.divisor;
+      if (f < 0 || f > 1) f = 0;
+      var net = p === null ? 0 : q * p * (1 - f);
+      var isActive = !!o && o.cls === "active";
+      if (isActive) activeNet += net;
+      lines.push({ order: it.order_id, product: it.product_id, name: prod ? str(prod.product_name) : String(it.product_id),
+                   qty: q, net: net, status: o ? o.status : "(no order)", active: isActive });
+    });
+    lines.sort(function (a, b) { return b.net - a.net; });
+    var zeroPrice = [], costAboveList = [], noCost = [];
+    products.forEach(function (p) {
+      var c = num(p.unit_cost), s = num(p.selling_price), nm = str(p.product_name) || String(p.product_id);
+      if (s !== null && s <= 0) zeroPrice.push({ id: p.product_id, name: nm });
+      else if (c !== null && s !== null && c > s) costAboveList.push({ id: p.product_id, name: nm, cost: c, price: s });
+      if (c === null) noCost.push({ id: p.product_id, name: nm });
+    });
+    return { typicalMaxQty: p99, qtyThreshold: threshold, quantityLines: lines, quantityActiveNet: activeNet,
+             quantityShare: ratio(activeNet, totalNet), zeroPrice: zeroPrice, costAboveList: costAboveList, noCost: noCost };
+  }
+
+  /* ── Reporting periods ──────────────────────────────────────────────
+   * Periods are anchored to the latest COMPLETE calendar month in the data, never to
+   * today's date, so a comparison never sets a partial month against a full one.
+   * Payments carry no date, so they are attributed to their order's period. */
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function ym(y, m) { while (m < 0) { m += 12; y--; } while (m > 11) { m -= 12; y++; } return { y: y, m: m }; }
+  function ymKey(p) { return p.y + "-" + ("0" + (p.m + 1)).slice(-2); }
+  function lastDay(p) { return new Date(Date.UTC(p.y, p.m + 1, 0)).getUTCDate(); }
+  function range(start, end) { // start/end {y,m}, inclusive
+    return { from: ymKey(start) + "-01", to: ymKey(end) + "-" + ("0" + lastDay(end)).slice(-2), start: start, end: end };
+  }
+  function label(r) {
+    if (r.start.y === r.end.y && r.start.m === r.end.m) return MON[r.start.m] + " " + r.start.y;
+    return MON[r.start.m] + (r.start.y !== r.end.y ? " " + r.start.y : "") + " – " + MON[r.end.m] + " " + r.end.y;
+  }
+  function filterData(data, r) {
+    var ids = Object.create(null), orders = [];
+    (data.orders || []).forEach(function (o) {
+      var d = str(o.order_date).slice(0, 10);
+      if (d && d >= r.from && d <= r.to) { orders.push(o); ids[o.order_id] = 1; }
+    });
+    return { customers: data.customers, products: data.products, orders: orders,
+             items: (data.items || []).filter(function (i) { return ids[i.order_id]; }),
+             payments: (data.payments || []).filter(function (p) { return ids[p.order_id]; }) };
+  }
+
+  function computePeriods(data, mode, full) {
+    full = full || compute(data);
+    var out = { mode: mode, full: full, A: full, P: null, label: null, prevLabel: null, range: null, prevRange: null, note: null };
+    var dr = full.dateRange;
+    if (!dr) { out.mode = "all"; out.note = "No dated orders."; return out; }
+    var f = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dr.first), l = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dr.last);
+    var first = { y: +f[1], m: +f[2] - 1 }, last = { y: +l[1], m: +l[2] - 1 };
+    var complete = +l[3] >= lastDay(last) - 1;
+    var anchor = complete ? last : ym(last.y, last.m - 1);
+    out.anchorComplete = complete;
+    out.allLabel = label(range(first, last));
+    function before(a, b) { return a.y < b.y || (a.y === b.y && a.m < b.m); }
+
+    if (mode === "quarter") {
+      var qEnd = anchor.m - ((anchor.m + 1) % 3 === 0 ? 0 : (anchor.m % 3) + 1);
+      var end = ym(anchor.y, qEnd), start = ym(end.y, end.m - 2);
+      var pEnd = ym(start.y, start.m - 1), pStart = ym(pEnd.y, pEnd.m - 2);
+      out.range = range(start, end);
+      out.label = "Q" + (Math.floor(start.m / 3) + 1) + " " + start.y;
+      out.sublabel = label(out.range);
+      if (!before(pStart, first)) { out.prevRange = range(pStart, pEnd); out.prevLabel = "Q" + (Math.floor(pStart.m / 3) + 1) + " " + pStart.y; }
+      else out.note = "No earlier quarter in the data to compare with.";
+    } else if (mode === "year") {
+      var yEnd = anchor, yStart = ym(anchor.y, anchor.m - 11);
+      var pyEnd = ym(yStart.y, yStart.m - 1), pyStart = ym(pyEnd.y, pyEnd.m - 11);
+      out.range = range(yStart, yEnd);
+      out.label = "Last 12 months";
+      out.sublabel = label(out.range);
+      if (!before(pyStart, first)) { out.prevRange = range(pyStart, pyEnd); out.prevLabel = "the previous 12 months"; }
+      else out.note = "The data does not reach back far enough for a 12-month comparison.";
+    } else {
+      out.mode = "all";
+      out.label = "All data";
+      out.sublabel = out.allLabel;
+      return out;
+    }
+    out.A = compute(filterData(data, out.range));
+    if (out.prevRange) out.P = compute(filterData(data, out.prevRange));
+
+    // New buying customers: first active order (across all data) falls inside the period.
+    var firstOrder = Object.create(null);
+    (data.orders || []).forEach(function (o) {
+      var d = str(o.order_date).slice(0, 10);
+      if (!d || classifyOrder(o.order_status) !== "active") return;
+      if (!firstOrder[o.customer_id] || d < firstOrder[o.customer_id]) firstOrder[o.customer_id] = d;
+    });
+    function countNew(r) { var n = 0; Object.keys(firstOrder).forEach(function (k) { var d = firstOrder[k]; if (d >= r.from && d <= r.to) n++; }); return n; }
+    out.newCustomers = countNew(out.range);
+    out.prevNewCustomers = out.prevRange ? countNew(out.prevRange) : null;
+    return out;
   }
 
   function A_statuses(statusMap) {
@@ -523,7 +659,8 @@
     return out;
   }
 
-  var api = { VERSION: VERSION, compute: compute, classifyOrder: classifyOrder, classifyPayment: classifyPayment,
+  var api = { VERSION: VERSION, compute: compute, computePeriods: computePeriods, filterData: filterData,
+              classifyOrder: classifyOrder, classifyPayment: classifyPayment,
               detectDiscount: detectDiscount, monthKey: monthKey };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.NovaAnalytics = api;

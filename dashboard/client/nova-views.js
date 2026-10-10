@@ -28,6 +28,7 @@
 
   function fInt(n) { return n === null || n === undefined || !isFinite(n) ? "—" : nf0.format(n); }
   function fMoney(n) { return n === null || n === undefined || !isFinite(n) ? "—" : (Math.abs(n) >= 1e6 ? nfc.format(n) : nf0.format(n)); }
+  function fAxis(n) { return n >= 1e6 ? (n / 1e6).toFixed(n % 1e6 ? 1 : 0) + "M" : n >= 1e3 ? Math.round(n / 1e3) + "K" : nf0.format(n); }
   function fMoney2(n) { return n === null || n === undefined || !isFinite(n) ? "—" : nf2.format(n); }
   function fPct(x, d) { return x === null || x === undefined || !isFinite(x) ? "—" : (x * 100).toFixed(d === undefined ? 1 : d) + "%"; }
   function fNum(x, d) { return x === null || x === undefined || !isFinite(x) ? "—" : x.toFixed(d === undefined ? 1 : d); }
@@ -92,20 +93,28 @@
     t.appendChild(tb); wrap.appendChild(t); card.appendChild(wrap);
   }
 
+  function niceMax(v) {
+    if (!(v > 0)) return 1;
+    var p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p;
+    return (f <= 1 ? 1 : f <= 1.2 ? 1.2 : f <= 1.5 ? 1.5 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 3 ? 3 : f <= 4 ? 4 : f <= 5 ? 5 : f <= 6 ? 6 : f <= 8 ? 8 : 10) * p;
+  }
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function monthLabel(k) { var m = /^(\d{4})-(\d{2})$/.exec(String(k)); return m ? MON[+m[2] - 1] + " " + m[1] : k; }
+
   /* Line or column chart. points: [{label, value}] */
   function chart(card, points, opts) {
     opts = opts || {};
     if (!points.length) return empty(card, "No dated records to chart.");
-    var W = 720, H = 230, L = 52, R = 12, T = 12, B = 30, iw = W - L - R, ih = H - T - B;
+    var W = 1100, H = 260, L = 64, R = 14, T = 14, B = 32, iw = W - L - R, ih = H - T - B;
     var max = 0;
     points.forEach(function (p) { if (p.value > max) max = p.value; });
-    if (max <= 0) max = 1;
+    max = niceMax(max * 1.04);
     var svg = sv("svg", { viewBox: "0 0 " + W + " " + H, role: "img", class: "chart", preserveAspectRatio: "xMidYMid meet" });
     svg.appendChild(sv("title", {}, opts.title || "Chart"));
-    [0, 0.5, 1].forEach(function (f) {
+    [0, 0.25, 0.5, 0.75, 1].forEach(function (f) {
       var y = T + ih - f * ih;
       svg.appendChild(sv("line", { x1: L, x2: W - R, y1: y, y2: y, class: "grid" }));
-      svg.appendChild(sv("text", { x: L - 6, y: y + 4, "text-anchor": "end", class: "axl" }, (opts.fmt || fMoney)(max * f)));
+      svg.appendChild(sv("text", { x: L - 8, y: y + 4, "text-anchor": "end", class: "axl" }, (opts.axis || fAxis)(max * f)));
     });
     var n = points.length, step = n > 1 ? iw / (n - 1) : 0;
     if (opts.type === "col") {
@@ -130,10 +139,12 @@
         svg.appendChild(c);
       });
     }
-    var ticks = n <= 6 ? points.map(function (p, i) { return i; }) : [0, Math.floor((n - 1) / 2), n - 1];
+    var every = Math.max(1, Math.ceil(n / 8)), ticks = [];
+    points.forEach(function (p, i) { if (i % every === 0 || i === n - 1) ticks.push(i); });
+    if (ticks.length > 1 && ticks[ticks.length - 1] - ticks[ticks.length - 2] < every * 0.6) ticks.splice(ticks.length - 2, 1);
     ticks.forEach(function (i) {
       var x = opts.type === "col" ? L + (iw / n) * (i + 0.5) : (n > 1 ? L + i * step : L + iw / 2);
-      svg.appendChild(sv("text", { x: x, y: H - 8, "text-anchor": i === 0 && n > 1 ? "start" : (i === n - 1 && n > 1 ? "end" : "middle"), class: "axl" }, points[i].label));
+      svg.appendChild(sv("text", { x: x, y: H - 8, "text-anchor": i === 0 && n > 1 ? "start" : (i === n - 1 && n > 1 ? "end" : "middle"), class: "axl" }, monthLabel(points[i].label)));
     });
     card.appendChild(svg);
   }
@@ -192,125 +203,32 @@
   /* ── Views ───────────────────────────────────────────────────────── */
   var R = {};
 
-  
-R.overview = function (host, A) {
-  var S = A.sales, P = A.payments.totals, O = A.orders;
-  var findings = A.insights || [];
-
-  // Four executive KPIs
-  host.appendChild(kpis([
-    {
-      label: "Net Sales",
-      value: fMoney(S.net),
-      sub: fMoney(S.discount) + " discounts (" +
-        fPct(S.discountRate) + ")"
-    },
-    {
-      label: "Orders",
-      value: fInt(O.all),
-      sub: fInt(O.active) + " active orders"
-    },
-    {
-      label: "Customers",
-      value: fInt(A.customers.total),
-      sub: fInt(A.customers.buyers) + " active buyers"
-    },
-    {
-      label: "Estimated Gross Profit",
-      value: fMoney(A.profit.profit),
-      sub: fPct(A.profit.margin) + " margin on costed lines"
+  R.overview = function (host, A) {
+    var S = A.sales, P = A.payments.totals, O = A.orders;
+    host.appendChild(kpis([
+      { label: "Orders", value: fInt(O.all), sub: fInt(O.active) + " active" },
+      { label: "Customers", value: fInt(A.customers.total), sub: fInt(A.customers.buyers) + " with active orders" },
+      { label: "Gross sales", value: fMoney(S.gross), sub: "before discounts" },
+      { label: "Net sales", value: fMoney(S.net), sub: fMoney(S.discount) + " discounts (" + fPct(S.discountRate) + ")" },
+      { label: "Collected payments", value: fMoney(P.collected), sub: fPct(A.payments.successRate) + " of payments succeeded" },
+      { label: "Average order value", value: fMoney2(S.aov), sub: "net sales per active order" },
+      { label: "Units sold", value: fInt(S.units), sub: fNum(S.unitsPerOrder, 2) + " per order" },
+      { label: "Cancelled / returned / failed", value: fPct(O.all ? (O.cancelled + O.returned + O.failed) / O.all : null), sub: fInt(O.cancelled + O.returned + O.failed) + " orders" },
+      { label: "Average rating", value: fNum(A.ops.ratings.avg, 2), sub: fInt(A.ops.ratings.n) + " rated orders" },
+      { label: "Estimated gross profit", value: fMoney(A.profit.profit), sub: fPct(A.profit.margin) + " margin on costed lines" }
+    ]));
+    var c = section(host, "Net sales by month", "Active orders", true);
+    chart(c, A.monthly.map(function (m) { return { label: m.month, value: m.net }; }), { title: "Net sales by month" });
+    if (A.insights.length) {
+      var ic = section(host, "Key findings", "Open Insights for all of them", true);
+      var list = el("div", "recs");
+      A.insights.slice(0, 3).forEach(function (i) {
+        var row = el("div", "rec"); row.appendChild(el("b", "", i.title)); row.appendChild(el("span", "", i.text)); list.appendChild(row);
+      });
+      ic.appendChild(list);
     }
-  ]));
-
-  // WANYXI Intelligence Brief
-  var intelligence = el("section", "wanyxi-intelligence");
-
-  var heading = el("div", "wanyxi-intelligence__heading");
-  heading.appendChild(
-    el("span", "wanyxi-intelligence__eyebrow",
-       "WANYXI BUSINESS INTELLIGENCE")
-  );
-  heading.appendChild(
-    el("h2", "", "What deserves your attention")
-  );
-  heading.appendChild(
-    el("p", "",
-       "Priority findings based on Nova's business data.")
-  );
-  intelligence.appendChild(heading);
-
-  var list = el("div", "wanyxi-intelligence__list");
-
-  if (findings.length) {
-    findings.slice(0, 3).forEach(function (item, index) {
-      var row = el("div", "wanyxi-intelligence__item");
-
-      row.appendChild(
-        el("span", "wanyxi-intelligence__number",
-           String(index + 1).padStart(2, "0"))
-      );
-
-      var content = el("div", "wanyxi-intelligence__content");
-      content.appendChild(el("h3", "", item.title));
-      content.appendChild(el("p", "", item.text));
-
-      if (item.metrics && item.metrics.length) {
-        var evidence = el(
-          "div",
-          "wanyxi-intelligence__evidence"
-        );
-
-        item.metrics.slice(0, 3).forEach(function (metric) {
-          var chip = el(
-            "span",
-            "wanyxi-intelligence__chip"
-          );
-          chip.textContent = metric[0] + ": " + metric[1];
-          evidence.appendChild(chip);
-        });
-
-        content.appendChild(evidence);
-      }
-
-      row.appendChild(content);
-      list.appendChild(row);
-    });
-  } else {
-    list.appendChild(
-      el("p", "",
-         "No priority findings are available for this dataset.")
-    );
-  }
-
-  intelligence.appendChild(list);
-
-  intelligence.appendChild(
-    el("div", "wanyxi-intelligence__footer",
-       "Evidence-based analytical findings. Not predictions or live AI-generated advice.")
-  );
-
-  host.appendChild(intelligence);
-
-  // Business performance chart
-  var chartCard = section(
-    host,
-    "Business Performance",
-    "Monthly net sales from active orders",
-    true
-  );
-
-  chart(
-    chartCard,
-    A.monthly.map(function (m) {
-      return { label: m.month, value: m.net };
-    }),
-    { title: "Net sales by month" }
-  );
-
-  // Preserve existing data-quality explanations
-  notesCard(host, A);
-};
-
+    notesCard(host, A);
+  };
 
   R.sales = function (host, A) {
     host.appendChild(kpis([
@@ -435,11 +353,35 @@ R.overview = function (host, A) {
                { key: "avg", label: "Avg rating", num: true, fmt: function (v) { return fNum(v, 2); } }], A.ops.ratingByStatus);
   };
 
-  R.insights = function (host, A) {
+  R.insights = function (host, A, ctx) {
+    var intel = ctx && ctx.intel, NO = root.NovaOverview;
+    if (intel && NO) {
+      var ac = section(host, "Recommended actions", intel.recommendations.length + " from your data · " + ctx.sublabel, true);
+      if (intel.recommendations.length) {
+        var grid = el("div", "acts__grid acts__grid--all");
+        intel.recommendations.forEach(function (r, i) { grid.appendChild(NO.actionCol(r, i)); });
+        ac.appendChild(grid);
+      } else empty(ac, "No rule found an action worth taking.");
+      if (intel.checks.length) {
+        var cc = section(host, "Data checks", "Problems in the data itself", true);
+        intel.checks.forEach(function (c) {
+          var row = el("button", "mini mini--check");
+          row.type = "button";
+          var t = el("span"); t.appendChild(el("b", "", c.title)); t.appendChild(el("small", "", c.detected));
+          row.appendChild(t); row.appendChild(el("span")); row.appendChild(el("span", "linkbtn", "Review →"));
+          row.addEventListener("click", function () { NO.openRec(c); });
+          cc.appendChild(row);
+        });
+      }
+    }
     if (!A.insights.length) {
-      var c = section(host, "Insights", "", true);
+      var c = section(host, "Findings", "", true);
       return empty(c, "There is not enough data to produce findings.");
     }
+    var fh = el("div", "sh sh--section");
+    fh.appendChild(el("h2", "", "Findings"));
+    fh.appendChild(el("span", "", "Observations, not recommendations"));
+    host.appendChild(fh);
     note(host, "Each finding is generated by a fixed rule from the data in this workspace and lists the numbers behind it. These are observations, not predictions.");
     A.insights.forEach(function (i) {
       var c = el("div", "card ins ins--" + i.tone);
@@ -455,5 +397,9 @@ R.overview = function (host, A) {
     notesCard(host, A);
   };
 
-  root.NovaViews = { render: function (view, host, A) { if (!R[view]) throw new Error("Unknown view " + view); R[view](host, A); }, views: Object.keys(R) };
+  root.NovaViews = {
+    render: function (view, host, A, ctx) { if (!R[view]) throw new Error("Unknown view " + view); R[view](host, A, ctx); },
+    register: function (view, fn) { R[view] = fn; },
+    views: Object.keys(R)
+  };
 })(window);

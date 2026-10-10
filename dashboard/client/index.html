@@ -1,19 +1,19 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Wanyxi Client Workspace</title>
-  <meta name="robots" content="noindex, nofollow">
-  <meta name="description" content="Wanyxi client workspace.">
-
-  <link rel="icon" type="image/png" href="/dashboard/assets/wanyxi-logo.png">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nova Client Intelligence</title>
+<meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/dashboard/assets/wanyxi-logo.png" type="image/png">
   <link rel="stylesheet" href="/dashboard/assets/styles.css">
   <link rel="stylesheet" href="/dashboard/client/client.css">
 </head>
-
 <body>
+
+
+
+
   <div class="app">
     <aside class="side">
       <img
@@ -22,23 +22,35 @@
         alt="Wanyxi — Connect | Automate | Scale"
       >
 
-      <div class="kicker">Client Workspace</div>
+      <div class="kicker">Client Intelligence</div>
 
       <nav class="nav" id="nav" aria-label="Workspace sections" hidden>
         <button type="button" data-view="overview" class="on" aria-current="page">
-          Overview
-        </button>
-        <button type="button" data-view="sales">Sales</button>
-        <button type="button" data-view="products">Products</button>
-        <button type="button" data-view="customers">Customers</button>
-        <button type="button" data-view="payments">Payments</button>
-        <button type="button" data-view="operations">Operations</button>
-        <button type="button" data-view="insights">Insights</button>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Overview</button>
+        <button type="button" data-view="insights">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.2 5.6L20 9.3l-4.4 3.9 1.3 5.8L12 16l-4.9 3 1.3-5.8L4 9.3l5.8-.7z"/></svg>Insights &amp; actions</button>
 
-        <button type="button" data-view="datasets">Datasets</button>
-        <button type="button" data-view="analysis">Data Analysis</button>
-        <button type="button" data-view="reports">Reports</button>
-        <button type="button" data-view="automations">Automations</button>
+        <span class="navgrp">Performance</span>
+        <button type="button" data-view="sales">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg>Sales</button>
+        <button type="button" data-view="products">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7M12 11v10"/></svg>Products</button>
+        <button type="button" data-view="customers">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.9.7 3.1 2.5 3.5 5.2"/></svg>Customers</button>
+        <button type="button" data-view="payments">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h4"/></svg>Payments</button>
+        <button type="button" data-view="operations">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 7h11v9H2zM13 10h4.5l3.5 3.5V16h-8"/><circle cx="6" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>Operations</button>
+
+        <span class="navgrp">Workspace</span>
+        <button type="button" data-view="datasets">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6M4.5 12v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6"/></svg>Datasets</button>
+        <button type="button" data-view="analysis">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Data Analysis</button>
+        <button type="button" data-view="reports">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg>Reports</button>
+        <button type="button" data-view="automations">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3L5 13h6l-1 8 8-10h-6z"/></svg>Automations</button>
       </nav>
 
       <div class="srcbox">
@@ -67,7 +79,16 @@
           </div>
 
           <div class="tools">
-            <button class="btn btn--line" id="signout" type="button" data-signout>
+            <div class="seg" id="periodSeg" role="group" aria-label="Reporting period" hidden>
+              <button type="button" data-period="quarter" class="on" aria-pressed="true">Quarter</button>
+              <button type="button" data-period="year" aria-pressed="false">12 months</button>
+              <button type="button" data-period="all" aria-pressed="false">All data</button>
+            </div>
+            <span class="status" id="dataStatus" hidden><i aria-hidden="true"></i><span id="dataStatusText"></span></span>
+            <button class="btn btn--line" type="button" data-refresh title="Reload your data from the database">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>Refresh
+            </button>
+            <button class="btn btn--dark" id="signout" type="button" data-signout>
               Sign out
             </button>
           </div>
@@ -78,12 +99,28 @@
     </main>
   </div>
 
-  <!-- Load dependencies in order -->
+  <div class="scrim" id="scrim"></div>
+  <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle" aria-hidden="true">
+    <div class="dtop">
+      <div>
+        <div class="kicker" id="dKick"></div>
+        <h2 id="dTitle"></h2>
+        <p id="dSub"></p>
+      </div>
+      <button class="x" type="button" data-close aria-label="Close">✕</button>
+    </div>
+    <div class="dbody" id="dBody"></div>
+    <div class="dact" id="dAct"></div>
+  </aside>
+  <div class="tip" id="tip" role="status" aria-live="polite"></div>
+
+    <!-- Production dependencies: no preview snapshot, mock auth, or inline data -->
   <script src="/dashboard/config.js"></script>
   <script src="/dashboard/assets/vendor/supabase-2.117.1.js"></script>
   <script src="/dashboard/client/nova-analytics.js"></script>
+  <script src="/dashboard/client/nova-recommend.js"></script>
   <script src="/dashboard/client/nova-views.js"></script>
+  <script src="/dashboard/client/nova-overview.js"></script>
   <script src="/dashboard/client/client.js"></script>
 </body>
 </html>
-

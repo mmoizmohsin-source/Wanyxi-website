@@ -1,4 +1,3 @@
-
 /* Wanyxi Client Dashboard — Nova Analytics connection */
 (function () {
   "use strict";
@@ -8,6 +7,13 @@
   var WS = null;
   var navToken = 0;
   var PAGE_SIZE = 1000;
+  var REQUEST_TIMEOUT_MS = 30000;
+  var STALE_DAYS = 45;          // data older than this is flagged in the header
+
+  /* Workspace-scoped cache: one download per sign-in (or per Refresh), never shared
+   * across workspaces or sessions. Cleared on sign-out and when the workspace changes. */
+  var CACHE = null;             // { ws, promise, data, loadedAt, periods: {} }
+  var PERIOD = "quarter";       // overview reporting period: quarter | year | all
 
   var ANALYTICS_VIEWS = [
     "overview", "sales", "products", "customers",
@@ -21,7 +27,7 @@
     customers:   { title: "Customers", sub: "Customer segments and purchasing behaviour" },
     payments:    { title: "Payments", sub: "Payment collection and payment status" },
     operations:  { title: "Operations", sub: "Delivery, shipping and customer ratings" },
-    insights:    { title: "Insights", sub: "Data-driven findings from your business" },
+    insights:    { title: "Insights & actions", sub: "Recommended actions, data checks and the findings behind them · all data" },
     datasets:    { title: "Datasets", sub: "Files stored in your workspace", table: "client_datasets", empty: "No datasets found." },
     analysis:    { title: "Data Analysis", sub: "Saved analysis results", table: "client_analysis", empty: "No saved analyses found." },
     reports:     { title: "Reports", sub: "Reports built from your data", table: "client_reports", empty: "No reports found." },
@@ -85,6 +91,7 @@
     SB.auth.onAuthStateChange(function (event) {
       if (event === "SIGNED_OUT") {
         WS = null;
+        CACHE = null;
         navToken++;
         if ($("gate") && !$("gate").hidden) return;
         showGate("login");
@@ -205,6 +212,7 @@
 
   function signOut() {
     WS = null;
+    CACHE = null;
     navToken++;
     return SB.auth.signOut().finally(function () {
       showGate("login");
@@ -251,6 +259,7 @@
                 return;
               }
 
+              if (!WS || WS.id !== w.data.id) CACHE = null;
               WS = { id: w.data.id, name: w.data.name || "Workspace" };
 
               $("gate").hidden = true;
@@ -273,17 +282,25 @@
   /*
    * Fetch every page, but only rows belonging to the verified workspace.
    * Do not remove the workspace filter to work around empty results.
+   * Pages are ordered by the table's key: without an ORDER BY, Postgres may return
+   * overlapping or missing rows across .range() pages.
    */
-  function loadTable(table, columns) {
+  function loadTable(table, columns, key) {
     var all = [];
 
     function page(from) {
-      return SB.from(table)
+      var ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      var timer = ctl ? setTimeout(function () { ctl.abort(); }, REQUEST_TIMEOUT_MS) : null;
+      var q = SB.from(table)
         .select(columns)
         .eq("workspace_id", WS.id)
-        .range(from, from + PAGE_SIZE - 1)
-        .then(function (r) {
+        .order(key, { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+      if (ctl && q.abortSignal) q = q.abortSignal(ctl.signal);
+      return q.then(function (r) {
+          if (timer) clearTimeout(timer);
           if (r.error) {
+            if (ctl && ctl.signal.aborted) throw new Error(table + ": the request timed out. Check your connection and retry.");
             throw new Error(table + ": " + r.error.message);
           }
 
@@ -301,23 +318,23 @@
   function loadNovaData() {
     var definitions = {
       customers: {
-        table: "nova_customers",
+        table: "nova_customers", key: "customer_id",
         columns: "customer_id,customer_name,gender,age,city,customer_segment,signup_date"
       },
       products: {
-        table: "nova_products",
+        table: "nova_products", key: "product_id",
         columns: "product_id,product_name,category,sub_category,supplier,unit_cost,selling_price"
       },
       orders: {
-        table: "nova_orders",
+        table: "nova_orders", key: "order_id",
         columns: "order_id,customer_id,order_date,order_status,shipping_city,shipping_cost,delivery_days,customer_rating"
       },
       items: {
-        table: "nova_order_items",
+        table: "nova_order_items", key: "row_id",
         columns: "row_id,order_id,product_id,quantity,unit_price,discount_pct"
       },
       payments: {
-        table: "nova_payments",
+        table: "nova_payments", key: "payment_id",
         columns: "payment_id,order_id,payment_method,payment_status,payment_amount"
       }
     };
@@ -327,7 +344,7 @@
 
     return Promise.all(names.map(function (name) {
       var d = definitions[name];
-      return loadTable(d.table, d.columns).then(function (rows) {
+      return loadTable(d.table, d.columns, d.key).then(function (rows) {
         result[name] = rows;
       });
     })).then(function () {
@@ -335,7 +352,7 @@
     });
   }
 
-  function go(view) {
+  function go(view, force) {
     if (!WS || !VIEWS[view]) return;
 
     var token = ++navToken;
@@ -357,46 +374,131 @@
 
     var host = $("view");
     host.replaceChildren();
-    host.appendChild(el("p", "dim", "Loading " + def.title.toLowerCase() + "…"));
+    host.dataset.view = view;
+    document.body.dataset.view = view;
+    window.scrollTo(0, 0);
 
     if (ANALYTICS_VIEWS.indexOf(view) !== -1) {
-      return renderAnalytics(view, host, token);
+      return renderAnalytics(view, host, token, force);
     }
+
+    setHead(view, null);
+    host.appendChild(el("p", "dim", "Loading " + def.title.toLowerCase() + "…"));
 
     return renderList(view, def, host, token);
   }
 
-  function renderAnalytics(view, host, token) {
+  /* One download per workspace session; concurrent callers share the same promise. */
+  function getData(force) {
+    if (force || !CACHE || CACHE.ws !== WS.id) {
+      var entry = { ws: WS.id, data: null, loadedAt: null, periods: {}, full: null };
+      entry.promise = loadNovaData().then(function (data) {
+        entry.data = data;
+        entry.loadedAt = new Date();
+        return entry;
+      }, function (e) {
+        if (CACHE === entry) CACHE = null;   // do not cache a failure
+        throw e;
+      });
+      CACHE = entry;
+    }
+    return CACHE.promise;
+  }
+
+  function analyticsFor(entry, view) {
+    var NA = window.NovaAnalytics;
+    if (!entry.full) entry.full = NA.compute(entry.data);
+    if (view !== "overview" && view !== "insights") return { A: entry.full, ctx: null };
+    var mode = view === "insights" ? "all" : PERIOD;
+    if (!entry.periods[mode]) {
+      var ctx = NA.computePeriods(entry.data, mode, entry.full);
+      ctx.loadedAt = entry.loadedAt;
+      ctx.workspace = WS.name;
+      ctx.intel = window.NovaRecommend ? window.NovaRecommend.build(ctx) : null;
+      entry.periods[mode] = ctx;
+    }
+    return { A: entry.periods[mode].A, ctx: entry.periods[mode] };
+  }
+
+  function daysBetween(isoDate, now) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate || "");
+    if (!m) return null;
+    return Math.floor((now - Date.UTC(+m[1], +m[2] - 1, +m[3])) / 86400000);
+  }
+
+  function setStatus(entry) {
+    var st = $("dataStatus");
+    if (!st) return;
+    var dr = entry && entry.full && entry.full.dateRange;
+    st.hidden = !dr;
+    if (!dr) return;
+    var age = daysBetween(dr.last, entry.loadedAt);
+    var d = new Date(dr.last + "T00:00:00Z");
+    var when = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+    st.classList.toggle("stale", age !== null && age > STALE_DAYS);
+    $("dataStatusText").textContent = "Data through " + when + (age !== null && age > STALE_DAYS ? " · " + age + " days old" : "");
+    st.title = "Latest order date in your workspace data. Loaded from the database at " +
+      entry.loadedAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) + " today.";
+  }
+
+  function greeting() {
+    var h = new Date().getHours();
+    return h < 5 ? "Good evening" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+  }
+
+  function setHead(view, ctx) {
+    var period = $("periodSeg");
+    if (period) period.hidden = view !== "overview";
+    if (view !== "overview" || !ctx) return;
+    $("title").textContent = greeting() + ", " + WS.name;
+    $("subtitle").textContent = "Executive overview · " + ctx.label +
+      (ctx.mode !== "all" ? " (" + ctx.sublabel + ")" : " (" + ctx.sublabel + ")") +
+      (ctx.prevLabel ? " compared with " + ctx.prevLabel : ctx.note ? " · " + ctx.note : "");
+    document.querySelectorAll("#periodSeg button").forEach(function (b) {
+      var on = b.dataset.period === PERIOD;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+
+  function renderAnalytics(view, host, token, force) {
     if (!window.NovaAnalytics || !window.NovaViews) {
       host.replaceChildren();
       host.appendChild(el("p", "note",
-        "Analytics modules did not load. Check that nova-analytics.js and nova-views.js are deployed under /dashboard/client/."));
+        "Analytics modules did not load. Check that the nova-*.js files are deployed under /dashboard/client/."));
       return;
     }
 
-    return loadNovaData().then(function (data) {
+    setHead(view, null);
+    if (!CACHE || !CACHE.data || force) host.appendChild(el("p", "dim", "Loading your business data…"));
+
+    return getData(force).then(function (entry) {
       if (token !== navToken) return;
 
-      var A = window.NovaAnalytics.compute(data);
+      var r = analyticsFor(entry, view);
       host.replaceChildren();
-      window.NovaViews.render(view, host, A);
+      setStatus(entry);
+      setHead(view, r.ctx);
+      window.NovaViews.render(view, host, r.A, r.ctx);
 
-      var summary = el("p", "dim",
-        "Loaded " + A.counts.customers.toLocaleString() + " customers, " +
-        A.counts.products.toLocaleString() + " products, " +
-        A.counts.orders.toLocaleString() + " orders, " +
-        A.counts.items.toLocaleString() + " order lines and " +
-        A.counts.payments.toLocaleString() + " payments.");
-      host.appendChild(summary);
+      if (view !== "overview") {
+        var A = entry.full;
+        host.appendChild(el("p", "dim",
+          "Loaded " + A.counts.customers.toLocaleString() + " customers, " +
+          A.counts.products.toLocaleString() + " products, " +
+          A.counts.orders.toLocaleString() + " orders, " +
+          A.counts.items.toLocaleString() + " order lines and " +
+          A.counts.payments.toLocaleString() + " payments."));
+      }
     }).catch(function (e) {
       if (token !== navToken) return;
       host.replaceChildren();
-      host.appendChild(el("h2", "", "Could not load Nova analytics"));
+      host.appendChild(el("h2", "", "Could not load your business data"));
       host.appendChild(el("p", "note", errText(e)));
       var retry = el("button", "btn btn--dark", "Retry loading data");
       retry.type = "button";
       retry.addEventListener("click", function () {
-        go(view);
+        go(view, true);
       });
       host.appendChild(retry);
     });
@@ -457,6 +559,27 @@
     if (target.closest("[data-retry]")) {
       showGate("loading");
       openWorkspace();
+      return;
+    }
+
+    if (target.closest("[data-refresh]")) {
+      var current = (location.hash || "#overview").slice(1);
+      go(VIEWS[current] ? current : "overview", true);
+      return;
+    }
+
+    var periodBtn = target.closest("#periodSeg button[data-period]");
+    if (periodBtn) {
+      if (periodBtn.dataset.period !== PERIOD) {
+        PERIOD = periodBtn.dataset.period;
+        go("overview");
+      }
+      return;
+    }
+
+    var goto = target.closest("[data-goto]");
+    if (goto && VIEWS[goto.dataset.goto]) {
+      go(goto.dataset.goto);
       return;
     }
 

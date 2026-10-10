@@ -1,0 +1,15 @@
+/* Wanyxi client workspace — small additions only.
+   Everything else comes from /dashboard/assets/styles.css (shared with the
+   administrator dashboard), so the two stay visually identical. */
+.srcbox .kicker{color:var(--muted-dk)}
+.kpis .kpi{cursor:default}
+.kpis .kpi .l i{display:none}
+.recs{display:flex;flex-direction:column}
+.rec{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;padding:10px 0;border-top:1px solid var(--rule);overflow-wrap:anywhere}
+.rec:first-child{border-top:0}
+.rec b{font-family:var(--d);font-weight:700;letter-spacing:-.01em}
+.rec span{font-size:12.5px;color:var(--muted)}
+.note{padding:10px 14px;margin:0 0 12px;border:1px solid var(--rule);border-left:3px solid var(--err);border-radius:4px;background:var(--surface);color:var(--err);font-size:13px;overflow-wrap:anywhere}
+.gate .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.gate a.btn{text-decoration:none}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}

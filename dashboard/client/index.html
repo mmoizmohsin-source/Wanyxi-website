@@ -1,353 +1,69 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Wanyxi | Client Workspace</title>
-  <meta name="robots" content="noindex, nofollow">
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #10110f;
-      --panel: #191b18;
-      --border: #30332d;
-      --text: #f4f4ed;
-      --muted: #a2a69b;
-      --accent: #d9f279;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font: 15px/1.5 Arial, sans-serif;
-    }
-    button, input { font: inherit; }
-    button { cursor: pointer; }
-    .shell { min-height: 100vh; display: grid; grid-template-columns: 235px 1fr; }
-    aside { padding: 28px 18px; border-right: 1px solid var(--border); }
-    .brand { font-size: 21px; font-weight: 800; letter-spacing: 2px; }
-    .muted { color: var(--muted); }
-    .tag { margin: 8px 0 28px; color: var(--accent); font-size: 11px; letter-spacing: 2px; }
-    nav { display: grid; gap: 8px; }
-    nav button {
-      text-align: left; color: var(--muted); background: transparent;
-      border: 1px solid transparent; padding: 12px; border-radius: 8px;
-    }
-    nav button.active, nav button:hover {
-      background: var(--panel); border-color: var(--border); color: var(--text);
-    }
-    main { padding: 36px; min-width: 0; }
-    header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
-    h1 { margin: 0; font-size: clamp(25px, 4vw, 36px); }
-    h2 { font-size: 17px; margin-top: 0; }
-    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 28px; }
-    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 22px; min-width: 0; }
-    .metric { font-size: 30px; font-weight: 700; margin-top: 12px; }
-    .wide { grid-column: 1 / -1; }
-    .btn {
-      background: var(--accent); color: #171910; border: 0;
-      padding: 10px 15px; border-radius: 7px; font-weight: 700;
-    }
-    .btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    .field { width: 100%; padding: 12px; border-radius: 7px; border: 1px solid var(--border); background: #10110f; color: var(--text); margin: 7px 0 14px; }
-    label { display: block; color: var(--muted); font-size: 13px; }
-    .login { max-width: 430px; margin: 9vh auto; padding: 30px; }
-    .hidden { display: none !important; }
-    .notice { padding: 12px; border-radius: 7px; background: #272a22; margin: 14px 0; overflow-wrap: anywhere; }
-    .error { color: #ffb5a8; }
-    .list { display: grid; gap: 10px; }
-    .item { padding: 13px; border: 1px solid var(--border); border-radius: 8px; overflow-wrap: anywhere; }
-    @media(max-width: 800px) {
-      .shell { grid-template-columns: 1fr; }
-      aside { border-right: 0; border-bottom: 1px solid var(--border); }
-      nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      main { padding: 20px; }
-      .grid { grid-template-columns: 1fr; }
-      .wide { grid-column: auto; }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wanyxi Client Workspace</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Wanyxi client workspace.">
+<link rel="icon" type="image/png" href="/dashboard/assets/wanyxi-logo.png">
+<link rel="stylesheet" href="/dashboard/assets/styles.css">
+<link rel="stylesheet" href="/dashboard/client/client.css">
 </head>
 <body>
-  <section id="loginView" class="panel login">
-    <div class="brand">WANYXI</div>
-    <div class="tag">CLIENT WORKSPACE</div>
-    <h1 style="font-size:27px">Welcome back.</h1>
-    <p class="muted">Sign in to access your company's workspace.</p>
-    <form id="loginForm">
-      <label for="email">Email address</label>
-      <input class="field" id="email" type="email" autocomplete="username" required>
-      <label for="password">Password</label>
-      <input class="field" id="password" type="password" autocomplete="current-password" required>
-      <button class="btn" id="loginBtn" type="submit">Sign in</button>
-      <p id="loginError" class="error" role="alert"></p>
-    </form>
-  </section>
+<div class="app">
+  <aside class="side">
+    <img class="logo" src="/dashboard/assets/wanyxi-logo.png" alt="Wanyxi — Connect | Automate | Scale">
+    <div class="kicker">Client Workspace</div>
+    <nav class="nav" id="nav" aria-label="Workspace sections" hidden>
+      <button type="button" data-view="overview" class="on" aria-current="page">
+        <svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Overview</button>
+      <button type="button" data-view="datasets">
+        <svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6M4.5 12v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6"/></svg>Datasets</button>
+      <button type="button" data-view="analysis">
+        <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Data Analysis</button>
+      <button type="button" data-view="reports">
+        <svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg>Reports</button>
+      <button type="button" data-view="automations">
+        <svg viewBox="0 0 24 24"><path d="M13 3L5 13h6l-1 8 8-10h-6z"/></svg>Automations</button>
+    </nav>
+    <div class="srcbox">
+      <span class="kicker">Workspace</span>
+      <b id="wsName">Wanyxi</b>
+      <small id="wsMeta">Not signed in</small>
+      <small class="who" id="who" hidden>Signed in as <b id="whoName"></b></small>
+      <div class="pw">Connect · Automate · Scale</div>
+    </div>
+  </aside>
 
-  <div id="workspaceView" class="shell hidden">
-    <aside>
-      <div class="brand">WANYXI</div>
-      <div class="tag">CLIENT WORKSPACE</div>
-      <p class="muted">Company workspace</p>
-      <nav id="nav">
-        <button class="active" data-page="overview">Overview</button>
-        <button data-page="datasets">Datasets</button>
-        <button data-page="analysis">Data Analysis</button>
-        <button data-page="reports">Reports</button>
-        <button data-page="automations">Automations</button>
-      </nav>
-      <div style="margin-top:32px">
-        <div class="muted" style="font-size:12px">SIGNED IN AS</div>
-        <div id="userEmail" style="overflow-wrap:anywhere;margin:8px 0 16px"></div>
-        <button class="btn secondary" id="logoutBtn">Sign out</button>
-      </div>
-    </aside>
-    <main>
-      <header>
+  <main id="main">
+    <!-- Shown while loading, for sign-in, and for any no-access or error state -->
+    <section id="gate" class="gate" aria-live="polite">
+      <div class="kicker">Client Workspace</div>
+      <h2>Loading…</h2>
+      <p>Preparing your workspace.</p>
+    </section>
+
+    <div id="app" hidden>
+      <header class="head">
         <div>
-          <p class="muted" style="margin:0 0 6px">YOUR BUSINESS, CONNECTED</p>
-          <h1 id="pageTitle">Overview</h1>
+          <h1 id="title">Overview</h1>
+          <p class="sub" id="subtitle"></p>
         </div>
-        <span class="muted" id="workspaceName">Checking workspace…</span>
+        <div class="tools">
+          <button class="btn btn--line" id="signout" type="button" data-signout>Sign out</button>
+        </div>
       </header>
-      <div id="message" class="notice hidden" role="status"></div>
-      <section id="pageContent" class="grid"></section>
-    </main>
-  </div>
+      <section class="view" id="view" aria-live="polite"></section>
+    </div>
+  </main>
+</div>
 
-  <script src="../assets/vendor/supabase-2.117.1.js"></script>
-  <script src="../config.js"></script>
-  <script>
-    (function () {
-      "use strict";
-
-      var cfg = window.WANYXI_DASHBOARD;
-      var loginView = document.getElementById("loginView");
-      var workspaceView = document.getElementById("workspaceView");
-      var loginError = document.getElementById("loginError");
-      var loginBtn = document.getElementById("loginBtn");
-      var message = document.getElementById("message");
-      var content = document.getElementById("pageContent");
-      var workspaceId = null;
-      var client = null;
-
-      function showMessage(text, isError) {
-        message.textContent = text;
-        message.classList.remove("hidden");
-        message.classList.toggle("error", !!isError);
-      }
-
-      function el(tag, className, text) {
-        var node = document.createElement(tag);
-        if (className) node.className = className;
-        if (text !== undefined) node.textContent = text;
-        return node;
-      }
-
-      function card(title, description, value) {
-        var box = el("article", "panel");
-        box.appendChild(el("h2", "", title));
-        box.appendChild(el("p", "muted", description));
-        if (value !== undefined) box.appendChild(el("div", "metric", value));
-        return box;
-      }
-
-      function showLogin() {
-        workspaceView.classList.add("hidden");
-        loginView.classList.remove("hidden");
-      }
-
-      function loadWorkspace() {
-        return client.auth.getUser().then(function (result) {
-          if (result.error) throw result.error;
-          var user = result.data.user;
-          if (!user) { showLogin(); return; }
-
-          document.getElementById("userEmail").textContent = user.email || "Signed-in user";
-
-          // Only workspaces associated with this authenticated user are returned.
-          return client.from("workspace_members")
-            .select("workspace_id, role, workspaces(id, name)")
-            .eq("user_id", user.id)
-            .then(function (result) {
-              if (result.error) throw result.error;
-              var memberships = result.data || [];
-
-              if (memberships.length !== 1 || !memberships[0].workspaces) {
-                throw new Error(
-                  memberships.length === 0
-                    ? "No client workspace is assigned to this account."
-                    : "This account has multiple workspaces. Workspace selection must be configured."
-                );
-              }
-
-              var membership = memberships[0];
-              if (membership.role !== "client") {
-                throw new Error("This page is for client accounts. Please use the appropriate dashboard.");
-              }
-
-              workspaceId = membership.workspace_id;
-              document.getElementById("workspaceName").textContent = membership.workspaces.name;
-              loginView.classList.add("hidden");
-              workspaceView.classList.remove("hidden");
-              return showPage("overview");
-            });
-        });
-      }
-
-      function countRows(table) {
-        return client.from(table).select("id", { count: "exact", head: true })
-          .eq("workspace_id", workspaceId)
-          .then(function (result) {
-            if (result.error) throw result.error;
-            return result.count || 0;
-          });
-      }
-
-      function showPage(page) {
-        var titles = {
-          overview: "Overview",
-          datasets: "Datasets",
-          analysis: "Data Analysis",
-          reports: "Reports",
-          automations: "Automations"
-        };
-        document.getElementById("pageTitle").textContent = titles[page] || "Workspace";
-        content.replaceChildren();
-
-        document.querySelectorAll("#nav button").forEach(function (button) {
-          button.classList.toggle("active", button.dataset.page === page);
-        });
-
-        if (page === "overview") {
-          content.appendChild(card("Datasets", "Your company's stored datasets", "…"));
-          content.appendChild(card("Analyses", "Saved data analysis results", "…"));
-          content.appendChild(card("Reports", "Generated business reports", "…"));
-
-          Promise.all([
-            countRows("client_datasets"),
-            countRows("client_analysis"),
-            countRows("client_reports")
-          ]).then(function (counts) {
-            if (page !== document.getElementById("pageTitle").textContent.toLowerCase()) {
-              // Page navigation may have changed; no need to update stale cards.
-            }
-            var metrics = content.querySelectorAll(".metric");
-            if (metrics.length === 3) {
-              metrics[0].textContent = counts[0];
-              metrics[1].textContent = counts[1];
-              metrics[2].textContent = counts[2];
-            }
-          }).catch(function (error) {
-            showMessage("Could not load workspace totals: " + error.message, true);
-          });
-          content.appendChild(card("Private workspace", "Your account is connected to its assigned workspace."));
-          return Promise.resolve();
-        }
-
-        var table = {
-          datasets: "client_datasets",
-          analysis: "client_analysis",
-          reports: "client_reports",
-          automations: "client_automations"
-        }[page];
-
-        var descriptions = {
-          datasets: "Uploaded datasets and their metadata will appear here.",
-          analysis: "Saved analysis results will appear here.",
-          reports: "Your generated reports will appear here.",
-          automations: "Automation configurations and statuses will appear here."
-        };
-
-        var panel = el("article", "panel wide");
-        panel.appendChild(el("h2", "", titles[page]));
-        panel.appendChild(el("p", "muted", descriptions[page]));
-        panel.appendChild(el("p", "muted", "Loading your workspace records…"));
-        content.appendChild(panel);
-
-        return client.from(table).select("*").eq("workspace_id", workspaceId)
-          .order("created_at", { ascending: false }).limit(100)
-          .then(function (result) {
-            if (result.error) throw result.error;
-            panel.replaceChildren();
-            panel.appendChild(el("h2", "", titles[page]));
-            var records = result.data || [];
-            if (!records.length) {
-              panel.appendChild(el("p", "muted", "No records yet. This section is ready for your data."));
-              return;
-            }
-            var list = el("div", "list");
-            records.forEach(function (record) {
-              var item = el("div", "item");
-              var title = record.name || record.title || record.source_file || "Record";
-              item.appendChild(el("strong", "", title));
-              item.appendChild(el("p", "muted", "Created " + new Date(record.created_at).toLocaleString()));
-              if (record.row_count !== undefined) {
-                item.appendChild(el("p", "", "Rows: " + record.row_count));
-              }
-              if (record.status) item.appendChild(el("p", "", "Status: " + record.status));
-              list.appendChild(item);
-            });
-            panel.appendChild(list);
-          }).catch(function (error) {
-            showMessage("Could not load " + titles[page] + ": " + error.message, true);
-          });
-      }
-
-      document.getElementById("nav").addEventListener("click", function (event) {
-        var button = event.target.closest("button[data-page]");
-        if (button && workspaceId) showPage(button.dataset.page);
-      });
-
-      document.getElementById("loginForm").addEventListener("submit", function (event) {
-        event.preventDefault();
-        loginError.textContent = "";
-        loginBtn.disabled = true;
-        loginBtn.textContent = "Signing in…";
-
-        client.auth.signInWithPassword({
-          email: document.getElementById("email").value.trim(),
-          password: document.getElementById("password").value
-        }).then(function (result) {
-          if (result.error) throw result.error;
-          return loadWorkspace();
-        }).catch(function (error) {
-          loginError.textContent = error.message || "Sign-in failed.";
-          showLogin();
-        }).finally(function () {
-          loginBtn.disabled = false;
-          loginBtn.textContent = "Sign in";
-        });
-      });
-
-      document.getElementById("logoutBtn").addEventListener("click", function () {
-        client.auth.signOut().then(showLogin);
-      });
-
-      if (!cfg || !cfg.supabaseUrl || !cfg.supabaseKey ||
-          !window.supabase || !window.supabase.createClient) {
-        loginError.textContent = "Supabase configuration could not be loaded.";
-        loginError.classList.add("error");
-        return;
-      }
-
-      client = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey);
-
-      client.auth.onAuthStateChange(function (event, session) {
-        if (event === "SIGNED_OUT" || !session) {
-          workspaceId = null;
-          showLogin();
-        }
-      });
-
-      client.auth.getSession().then(function (result) {
-        if (result.error) throw result.error;
-        if (result.data.session) return loadWorkspace();
-      }).catch(function (error) {
-        showMessage("Could not verify your session: " + error.message, true);
-      });
-    })();
+<script src="/dashboard/config.js"></script>
+<script src="/dashboard/assets/vendor/supabase-2.117.1.js"></script>
+<script src="/dashboard/client/client.js"></script>
+</body>
+</html>
   </script>
 </body>
 </html>

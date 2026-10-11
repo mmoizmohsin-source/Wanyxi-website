@@ -4,6 +4,11 @@
       "source": "/dashboard",
       "destination": "/dashboard/",
       "permanent": true
+    },
+    {
+      "source": "/dashboard/client",
+      "destination": "/dashboard/client/",
+      "permanent": false
     }
   ],
   "headers": [
@@ -42,6 +47,15 @@
     },
     {
       "source": "/dashboard/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/dashboard/client/",
       "headers": [
         {
           "key": "Cache-Control",

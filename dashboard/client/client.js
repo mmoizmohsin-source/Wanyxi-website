@@ -1,37 +1,42 @@
-/* Wanyxi client workspace — Phase 1 (sign-in, routing, workspace shell).
- *
- * Loaded as an external file because the site's Content-Security-Policy
- * (script-src 'self') blocks inline scripts. Uses only config.js and the
- * locally vendored Supabase library; the publishable key is read from
- * window.WANYXI_DASHBOARD and no other credential exists in this file.
- *
- * Security model: this script decides what to SHOW. What a user can READ is
- * decided by the database (Row Level Security). Every query below is also
- * scoped by the verified workspace_id as defence in depth, never as the only
- * protection.
- */
+/* Wanyxi Client Dashboard — Nova Analytics connection */
 (function () {
   "use strict";
 
   var CFG = window.WANYXI_DASHBOARD || {};
-  var ADMIN_URL = "/dashboard/";
   var SB = null;
-  var WS = null;        // { id, name } of the verified workspace
-  var navToken = 0;     // ignores late responses from a view the user already left
+  var WS = null;
+  var navToken = 0;
+  var PAGE_SIZE = 1000;
+  var REQUEST_TIMEOUT_MS = 30000;
+  var STALE_DAYS = 45;          // data older than this is flagged in the header
+
+  /* Workspace-scoped cache: one download per sign-in (or per Refresh), never shared
+   * across workspaces or sessions. Cleared on sign-out and when the workspace changes. */
+  var CACHE = null;             // { ws, promise, data, loadedAt, periods: {} }
+  var PERIOD = "quarter";       // overview reporting period: quarter | year | all
+
+  var ANALYTICS_VIEWS = [
+    "overview", "sales", "products", "customers",
+    "payments", "operations", "insights"
+  ];
 
   var VIEWS = {
-    overview:    { title: "Overview",      sub: "A summary of your workspace" },
-    datasets:    { title: "Datasets",      sub: "Files stored in your workspace", table: "client_datasets",
-                   empty: "No datasets yet. Uploading CSV and Excel files is not enabled in this release." },
-    analysis:    { title: "Data Analysis", sub: "Saved analysis results",         table: "client_analysis",
-                   empty: "No saved analyses yet." },
-    reports:     { title: "Reports",       sub: "Reports built from your data",   table: "client_reports",
-                   empty: "No reports yet." },
-    automations: { title: "Automations",   sub: "Automation configurations and their status", table: "client_automations",
-                   empty: "No automations configured yet. A listed automation will be marked as configured only, unless a real execution mechanism is running it." }
+    overview:    { title: "Overview", sub: "Your business at a glance" },
+    sales:       { title: "Sales", sub: "Revenue, orders and sales trends" },
+    products:    { title: "Products", sub: "Product performance and profitability" },
+    customers:   { title: "Customers", sub: "Customer segments and purchasing behaviour" },
+    payments:    { title: "Payments", sub: "Payment collection and payment status" },
+    operations:  { title: "Operations", sub: "Delivery, shipping and customer ratings" },
+    insights:    { title: "Insights & actions", sub: "Recommended actions, data checks and the findings behind them · all data" },
+    datasets:    { title: "Datasets", sub: "Files stored in your workspace", table: "client_datasets", empty: "No datasets found." },
+    analysis:    { title: "Data Analysis", sub: "Saved analysis results", table: "client_analysis", empty: "No saved analyses found." },
+    reports:     { title: "Reports", sub: "Reports built from your data", table: "client_reports", empty: "No reports found." },
+    automations: { title: "Automations", sub: "Automation configurations", table: "client_automations", empty: "No automations found." }
   };
 
-  function $(id) { return document.getElementById(id); }
+  function $(id) {
+    return document.getElementById(id);
+  }
 
   function el(tag, cls, text) {
     var n = document.createElement(tag);
@@ -40,307 +45,569 @@
     return n;
   }
 
-  /* ── Supabase client ─────────────────────────────────────────────── */
+  function errText(e) {
+    return e && (e.message || e.error_description) || String(e);
+  }
+
   function sbClient() {
     if (SB) return SB;
-    var url = CFG.supabaseUrl, key = CFG.supabaseKey;
-    if (!url || !key) throw new Error("The workspace is not configured. supabaseUrl and supabaseKey are missing from /dashboard/config.js.");
-    var role = "";
-    try { role = key.indexOf("eyJ") === 0 ? JSON.parse(atob(key.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).role : ""; } catch (e) { /* not a JWT */ }
-    if (/^sb_secret_/.test(key) || role === "service_role") {
-      throw new Error("config.js contains a secret service key. Remove it, rotate it in Supabase, and use the publishable key.");
+
+    var url = CFG.supabaseUrl;
+    var key = CFG.supabaseKey;
+
+    if (!url || !key) {
+      throw new Error("Supabase URL or publishable key is missing from dashboard/config.js.");
     }
+
+    if (/^sb_secret_/.test(key)) {
+      throw new Error("A secret key cannot be used in the browser. Configure the publishable key.");
+    }
+
+    try {
+      if (key.indexOf("eyJ") === 0) {
+        var payload = JSON.parse(
+          atob(key.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))
+        );
+        if (payload.role === "service_role") {
+          throw new Error("A service-role key cannot be used in the browser.");
+        }
+      }
+    } catch (e) {
+      if (/service-role key/.test(errText(e))) throw e;
+    }
+
     if (!window.supabase || !window.supabase.createClient) {
-      throw new Error("The Supabase library did not load (/dashboard/assets/vendor/supabase-2.117.1.js).");
+      throw new Error("The Supabase browser library did not load.");
     }
-    // Same options as the administrator dashboard, so both pages share one browser session.
+
     SB = window.supabase.createClient(url.replace(/\/$/, ""), key, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
-    });
-    SB.auth.onAuthStateChange(function (event) {
-      if (event === "SIGNED_OUT") {
-        WS = null; navToken++;
-        if ($("loginForm") && !$("gate").hidden) return;   // keep any message already shown on the sign-in form
-        gate("login");
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false
       }
     });
+
+    SB.auth.onAuthStateChange(function (event) {
+      if (event === "SIGNED_OUT") {
+        WS = null;
+        CACHE = null;
+        navToken++;
+        if ($("gate") && !$("gate").hidden) return;
+        showGate("login");
+      }
+    });
+
     return SB;
   }
 
-  function errText(err) {
-    return (err && (err.message || err.error_description)) || String(err);
-  }
+  function showGate(kind, message) {
+    var gate = $("gate");
+    if (!gate) return;
 
-  function isNetworkError(err) {
-    return !!err && (err.name === "AuthRetryableFetchError" || /failed to fetch|networkerror|network request failed|load failed/i.test(errText(err)));
-  }
-
-  /* ── Gate (loading, sign-in, no access, errors) ──────────────────── */
-  function chrome(signedIn, email) {
-    $("nav").hidden = !signedIn;
-    $("who").hidden = !signedIn;
-    if (signedIn) $("whoName").textContent = email || "";
-    $("wsName").textContent = signedIn && WS ? WS.name : "Wanyxi";
-    $("wsMeta").textContent = signedIn ? "Private workspace" : "Not signed in";
-  }
-
-  function gate(kind, a, b) {
-    var g = $("gate");
-    g.hidden = false;
+    gate.hidden = false;
     $("app").hidden = true;
-    chrome(false);
-    g.className = "gate" + (kind === "error" || kind === "noaccess" ? " err" : "");
-    g.replaceChildren();
+    $("nav").hidden = true;
+    $("who").hidden = true;
+    gate.replaceChildren();
+    gate.className = "gate" + (kind === "error" ? " err" : "");
 
     if (kind === "loading") {
-      g.appendChild(el("div", "kicker", "Client Workspace"));
-      g.appendChild(el("h2", "", "Loading…"));
-      g.appendChild(el("p", "", "Checking your sign-in."));
+      gate.appendChild(el("div", "kicker", "Client Workspace"));
+      gate.appendChild(el("h2", "", "Loading workspace…"));
+      gate.appendChild(el("p", "", "Verifying access and preparing your dashboard."));
       return;
     }
 
     if (kind === "login") {
-      g.appendChild(el("div", "kicker", "Wanyxi · Client"));
-      g.appendChild(el("h2", "", "Sign in to your workspace"));
-      g.appendChild(el("p", "", "Sign in with the account Wanyxi created for your company."));
-      var f = el("form", "login");
-      f.id = "loginForm";
-      f.noValidate = true;
-      f.innerHTML =
-        '<label for="cEmail">Email</label><input id="cEmail" name="email" type="email" autocomplete="username" required>' +
-        '<label for="cPass">Password</label><input id="cPass" name="password" type="password" autocomplete="current-password" required>' +
-        '<p class="login__err" id="cErr" role="alert" hidden></p>' +
-        '<button class="btn btn--dark" type="submit" id="cBtn">Sign in</button>';
-      g.appendChild(f);
-      if (a) { var e = $("cErr"); e.textContent = a; e.hidden = false; }
-      f.addEventListener("submit", onSignIn);
-      setTimeout(function () { var i = $("cEmail"); if (i) i.focus(); }, 30);
+      gate.appendChild(el("div", "kicker", "Wanyxi · Client"));
+      gate.appendChild(el("h2", "", "Sign in to your workspace"));
+      gate.appendChild(el("p", "", "Use your Wanyxi client account."));
+
+      var form = el("form", "login");
+      form.id = "loginForm";
+      form.noValidate = true;
+
+      var emailLabel = el("label", "", "Email");
+      emailLabel.htmlFor = "cEmail";
+      var email = el("input");
+      email.id = "cEmail";
+      email.type = "email";
+      email.autocomplete = "username";
+      email.required = true;
+
+      var passLabel = el("label", "", "Password");
+      passLabel.htmlFor = "cPass";
+      var pass = el("input");
+      pass.id = "cPass";
+      pass.type = "password";
+      pass.autocomplete = "current-password";
+      pass.required = true;
+
+      var err = el("p", "login__err", message || "");
+      err.id = "cErr";
+      err.setAttribute("role", "alert");
+      err.hidden = !message;
+
+      var btn = el("button", "btn btn--dark", "Sign in");
+      btn.id = "cBtn";
+      btn.type = "submit";
+
+      form.append(emailLabel, email, passLabel, pass, err, btn);
+      gate.appendChild(form);
+      form.addEventListener("submit", signIn);
       return;
     }
 
-    if (kind === "noaccess") {
-      var why = {
-        none: "No client workspace is assigned to this account.",
-        notclient: "This page is for client accounts. This account belongs to a different kind of workspace.",
-        multiple: "This account belongs to more than one workspace. Workspace selection is not available yet."
-      }[b] || "This account cannot open a client workspace.";
-      g.appendChild(el("div", "kicker", "No access"));
-      g.appendChild(el("h2", "", "This account cannot open this workspace"));
-      var p1 = el("p", "", "You are signed in as ");
-      p1.appendChild(el("b", "", a || "this account"));
-      p1.appendChild(document.createTextNode(". " + why));
-      g.appendChild(p1);
-      g.appendChild(el("p", "", "If you think this is a mistake, contact Wanyxi."));
-      var row = el("div", "row");
-      var out = el("button", "btn btn--dark", "Sign out");
-      out.type = "button"; out.setAttribute("data-signout", "");
-      row.appendChild(out);
-      if (b === "notclient") {
-        var adm = el("a", "btn btn--line", "Administrator dashboard");
-        adm.href = ADMIN_URL;
-        row.appendChild(adm);
-      }
-      g.appendChild(row);
-      return;
-    }
+    gate.appendChild(el("div", "kicker", "Wanyxi Workspace"));
+    gate.appendChild(el("h2", "", kind === "noaccess" ? "Workspace access unavailable" : "Could not load dashboard"));
+    gate.appendChild(el("p", "", message || "An unexpected error occurred."));
 
-    // kind === "error"
-    g.appendChild(el("div", "kicker", "Could not load"));
-    g.appendChild(el("h2", "", a || "Something went wrong"));
-    g.appendChild(el("p", "", b || ""));
-    g.appendChild(el("p", "", "Nothing has been estimated or filled in."));
-    var r2 = el("div", "row");
+    var actions = el("div", "row");
     var retry = el("button", "btn btn--dark", "Try again");
-    retry.type = "button"; retry.setAttribute("data-retry", "");
-    var out2 = el("button", "btn btn--line", "Sign out");
-    out2.type = "button"; out2.setAttribute("data-signout", "");
-    r2.appendChild(retry); r2.appendChild(out2);
-    g.appendChild(r2);
+    retry.type = "button";
+    retry.dataset.retry = "";
+    var out = el("button", "btn btn--line", "Sign out");
+    out.type = "button";
+    out.dataset.signout = "";
+    actions.append(retry, out);
+    gate.appendChild(actions);
   }
 
-  /* ── Sign in / out ───────────────────────────────────────────────── */
-  function onSignIn(ev) {
+  function signIn(ev) {
     ev.preventDefault();
-    var email = $("cEmail").value.trim(), pass = $("cPass").value, err = $("cErr"), btn = $("cBtn");
-    err.hidden = true;
-    if (!email || !pass) { err.textContent = "Enter your email and password."; err.hidden = false; return; }
-    btn.disabled = true; btn.textContent = "Signing in…";
-    sbClient().auth.signInWithPassword({ email: email, password: pass }).then(function (r) {
+
+    var email = $("cEmail").value.trim();
+    var password = $("cPass").value;
+    var error = $("cErr");
+    var button = $("cBtn");
+
+    error.hidden = true;
+
+    if (!email || !password) {
+      error.textContent = "Enter your email and password.";
+      error.hidden = false;
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Signing in…";
+
+    sbClient().auth.signInWithPassword({
+      email: email,
+      password: password
+    }).then(function (r) {
       if (r.error) throw r.error;
-      gate("loading");
+      showGate("loading");
       return openWorkspace();
     }).catch(function (e) {
-      if (!$("cErr")) return fail(e);  // the form was replaced by another state
-      var m = isNetworkError(e) ? "Could not reach the server. Check your connection and try again." : (errText(e) || "Sign-in failed.");
-      err.textContent = m; err.hidden = false;
-      btn.disabled = false; btn.textContent = "Sign in";
+      var currentError = $("cErr");
+      if (!currentError) return showGate("error", errText(e));
+      currentError.textContent = errText(e);
+      currentError.hidden = false;
+      button.disabled = false;
+      button.textContent = "Sign in";
     });
   }
 
   function signOut() {
-    WS = null; navToken++;
-    var done = function () { gate("login"); };
-    if (!SB) return done();
-    return SB.auth.signOut().then(done, done);
-  }
-
-  /* ── Workspace access (membership verified in the database) ──────── */
-  function fail(err) {
-    if (/jwt|token|session/i.test(errText(err)) && !isNetworkError(err)) {
-      return sbClient().auth.signOut().then(function () { gate("login", "Your session has expired. Please sign in again."); },
-                                            function () { gate("login", "Your session has expired. Please sign in again."); });
-    }
-    return gate("error",
-      isNetworkError(err) ? "The workspace could not be reached" : "The workspace could not be loaded",
-      isNetworkError(err) ? "Check your connection and try again." : errText(err));
+    WS = null;
+    CACHE = null;
+    navToken++;
+    return SB.auth.signOut().finally(function () {
+      showGate("login");
+    });
   }
 
   function openWorkspace() {
-    var c = sbClient();
-    // getUser() asks the auth server to validate the token instead of trusting local storage.
-    return c.auth.getUser().then(function (r) {
-      if (r.error && isNetworkError(r.error)) throw r.error;
-      if (r.error || !r.data || !r.data.user) {
-        return c.auth.signOut().then(function () { gate("login", "Your session has expired. Please sign in again."); },
-                                     function () { gate("login", "Your session has expired. Please sign in again."); });
-      }
-      var user = r.data.user;
-      return c.from("workspace_members").select("workspace_id, role, workspaces(id, name)").eq("user_id", user.id)
-        .then(function (m) {
-          if (m.error) throw m.error;
-          var rows = m.data || [];
-          if (!rows.length) return gate("noaccess", user.email, "none");
-          var mine = rows.filter(function (x) { return x.role === "client" && x.workspaces; });
-          if (!mine.length) return gate("noaccess", user.email, "notclient");
-          if (mine.length > 1) return gate("noaccess", user.email, "multiple");
-          WS = { id: mine[0].workspace_id, name: mine[0].workspaces.name || "Workspace" };
-          $("gate").hidden = true;
-          $("app").hidden = false;
-          chrome(true, user.email);
-          var v = (location.hash || "").replace("#", "");
-          return go(VIEWS[v] ? v : "overview");
-        });
-    }).catch(fail);
-  }
+    var client = sbClient();
 
-  /* ── Views ───────────────────────────────────────────────────────── */
-  function go(view) {
-    var def = VIEWS[view];
-    if (!def || !WS) return;
-    var token = ++navToken;
-    $("title").textContent = def.title;
-    $("subtitle").textContent = def.sub;
-    if (("#" + view) !== location.hash) history.replaceState(null, "", "#" + view);
-    document.querySelectorAll("#nav button").forEach(function (b) {
-      var on = b.dataset.view === view;
-      b.classList.toggle("on", on);
-      if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
-    });
-    var host = $("view");
-    host.replaceChildren();
-    return (view === "overview" ? renderOverview(host, token) : renderList(host, def, token));
-  }
-
-  function countOf(table) {
-    return SB.from(table).select("id", { count: "exact", head: true }).eq("workspace_id", WS.id)
-      .then(function (r) { if (r.error) throw r.error; return r.count; });
-  }
-
-  function renderOverview(host, token) {
-    var items = [
-      { label: "Datasets",    table: "client_datasets" },
-      { label: "Analyses",    table: "client_analysis" },
-      { label: "Reports",     table: "client_reports" },
-      { label: "Automations", table: "client_automations" }
-    ];
-    var kpis = el("div", "kpis");
-    var vals = items.map(function (it) {
-      var card = el("div", "card kpi");
-      card.appendChild(el("div", "l", it.label));
-      var v = el("div", "v num", "…");
-      card.appendChild(v);
-      kpis.appendChild(card);
-      return v;
-    });
-    host.appendChild(kpis);
-
-    return Promise.all(items.map(function (it, i) {
-      return countOf(it.table).then(function (n) { return n; }, function (e) { return { error: e }; });
-    })).then(function (res) {
-      if (token !== navToken) return;
-      var errors = [], total = 0;
-      res.forEach(function (r, i) {
-        if (r && r.error) { vals[i].textContent = "—"; errors.push(items[i].label + ": " + errText(r.error)); }
-        else { vals[i].textContent = String(r); total += r; }
-      });
-      if (errors.length) {
-        var n = el("div", "note", "Some totals could not be loaded. " + errors.join(" · "));
-        host.insertBefore(n, kpis);
+    return client.auth.getUser().then(function (r) {
+      if (r.error) throw r.error;
+      if (!r.data || !r.data.user) {
+        showGate("login", "Please sign in again.");
         return;
       }
-      var card = el("div", "card empty");
-      if (total === 0) {
-        card.appendChild(el("h3", "", "Your workspace is empty"));
-        card.appendChild(el("p", "", "Nothing has been uploaded or created yet, so there are no figures to show. Totals above come directly from your workspace and will update as data is added."));
-      } else {
-        card.appendChild(el("h3", "", "Totals come from your workspace"));
-        card.appendChild(el("p", "", "Open a section from the menu to see its records."));
-      }
-      host.appendChild(card);
+
+      var user = r.data.user;
+
+      return client.from("workspace_members")
+        .select("workspace_id, role")
+        .eq("user_id", user.id)
+        .then(function (m) {
+          if (m.error) throw m.error;
+
+          var memberships = (m.data || []).filter(function (x) {
+            return x.role === "client" && x.workspace_id;
+          });
+
+          if (memberships.length !== 1) {
+            showGate("noaccess", memberships.length
+              ? "This account has multiple client workspaces. Workspace selection is not supported yet."
+              : "No client workspace is assigned to this account.");
+            return;
+          }
+
+          return client.from("workspaces")
+            .select("id, name")
+            .eq("id", memberships[0].workspace_id)
+            .maybeSingle()
+            .then(function (w) {
+              if (w.error) throw w.error;
+              if (!w.data) {
+                showGate("noaccess", "The assigned workspace could not be found.");
+                return;
+              }
+
+              if (!WS || WS.id !== w.data.id) CACHE = null;
+              WS = { id: w.data.id, name: w.data.name || "Workspace" };
+
+              $("gate").hidden = true;
+              $("app").hidden = false;
+              $("nav").hidden = false;
+              $("who").hidden = false;
+              $("whoName").textContent = user.email || "";
+              $("wsName").textContent = WS.name;
+              $("wsMeta").textContent = "Private workspace";
+
+              var requested = (location.hash || "").slice(1);
+              return go(VIEWS[requested] ? requested : "overview");
+            });
+        });
+    }).catch(function (e) {
+      showGate("error", errText(e));
     });
   }
 
-  function renderList(host, def, token) {
-    var card = el("div", "card");
-    var sh = el("div", "sh");
-    sh.appendChild(el("h2", "", def.title));
-    sh.appendChild(el("span", "", "Up to 100 most recent records"));
-    card.appendChild(sh);
-    var body = el("p", "dim", "Loading…");
-    card.appendChild(body);
-    host.appendChild(card);
+  /*
+   * Fetch every page, but only rows belonging to the verified workspace.
+   * Do not remove the workspace filter to work around empty results.
+   * Pages are ordered by the table's key: without an ORDER BY, Postgres may return
+   * overlapping or missing rows across .range() pages.
+   */
+  function loadTable(table, columns, key) {
+    var all = [];
 
-    return SB.from(def.table).select("*").eq("workspace_id", WS.id).limit(100).then(function (r) {
-      if (token !== navToken) return;
-      if (r.error) throw r.error;
-      var rows = r.data || [];
-      if (!rows.length) { body.className = "dim"; body.textContent = def.empty; return; }
-      var list = el("div", "recs");
-      rows.forEach(function (x) {
-        var row = el("div", "rec");
-        row.appendChild(el("b", "", String(x.name || x.title || x.file_name || x.source_file || "Record")));
-        var meta = [];
-        if (x.row_count != null) meta.push(x.row_count + " rows");
-        if (x.status) meta.push(String(x.status));
-        if (x.created_at) meta.push(new Date(x.created_at).toLocaleString());
-        row.appendChild(el("span", "", meta.join(" · ")));
-        list.appendChild(row);
+    function page(from) {
+      var ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      var timer = ctl ? setTimeout(function () { ctl.abort(); }, REQUEST_TIMEOUT_MS) : null;
+      var q = SB.from(table)
+        .select(columns)
+        .eq("workspace_id", WS.id)
+        .order(key, { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+      if (ctl && q.abortSignal) q = q.abortSignal(ctl.signal);
+      return q.then(function (r) {
+          if (timer) clearTimeout(timer);
+          if (r.error) {
+            if (ctl && ctl.signal.aborted) throw new Error(table + ": the request timed out. Check your connection and retry.");
+            throw new Error(table + ": " + r.error.message);
+          }
+
+          var rows = r.data || [];
+          all = all.concat(rows);
+
+          if (rows.length === PAGE_SIZE) return page(from + PAGE_SIZE);
+          return all;
+        });
+    }
+
+    return page(0);
+  }
+
+  function loadNovaData() {
+    var definitions = {
+      customers: {
+        table: "nova_customers", key: "customer_id",
+        columns: "customer_id,customer_name,gender,age,city,customer_segment,signup_date"
+      },
+      products: {
+        table: "nova_products", key: "product_id",
+        columns: "product_id,product_name,category,sub_category,supplier,unit_cost,selling_price"
+      },
+      orders: {
+        table: "nova_orders", key: "order_id",
+        columns: "order_id,customer_id,order_date,order_status,shipping_city,shipping_cost,delivery_days,customer_rating"
+      },
+      items: {
+        table: "nova_order_items", key: "row_id",
+        columns: "row_id,order_id,product_id,quantity,unit_price,discount_pct"
+      },
+      payments: {
+        table: "nova_payments", key: "payment_id",
+        columns: "payment_id,order_id,payment_method,payment_status,payment_amount"
+      }
+    };
+
+    var result = {};
+    var names = Object.keys(definitions);
+
+    return Promise.all(names.map(function (name) {
+      var d = definitions[name];
+      return loadTable(d.table, d.columns, d.key).then(function (rows) {
+        result[name] = rows;
       });
-      card.replaceChild(list, body);
+    })).then(function () {
+      return result;
+    });
+  }
+
+  function go(view, force) {
+    if (!WS || !VIEWS[view]) return;
+
+    var token = ++navToken;
+    var def = VIEWS[view];
+
+    $("title").textContent = def.title;
+    $("subtitle").textContent = def.sub;
+
+    if (location.hash !== "#" + view) {
+      history.replaceState(null, "", "#" + view);
+    }
+
+    document.querySelectorAll("#nav button[data-view]").forEach(function (button) {
+      var active = button.dataset.view === view;
+      button.classList.toggle("on", active);
+      if (active) button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
+    });
+
+    var host = $("view");
+    host.replaceChildren();
+    host.dataset.view = view;
+    document.body.dataset.view = view;
+    window.scrollTo(0, 0);
+
+    if (ANALYTICS_VIEWS.indexOf(view) !== -1) {
+      return renderAnalytics(view, host, token, force);
+    }
+
+    setHead(view, null);
+    host.appendChild(el("p", "dim", "Loading " + def.title.toLowerCase() + "…"));
+
+    return renderList(view, def, host, token);
+  }
+
+  /* One download per workspace session; concurrent callers share the same promise. */
+  function getData(force) {
+    if (force || !CACHE || CACHE.ws !== WS.id) {
+      var entry = { ws: WS.id, data: null, loadedAt: null, periods: {}, full: null };
+      entry.promise = loadNovaData().then(function (data) {
+        entry.data = data;
+        entry.loadedAt = new Date();
+        return entry;
+      }, function (e) {
+        if (CACHE === entry) CACHE = null;   // do not cache a failure
+        throw e;
+      });
+      CACHE = entry;
+    }
+    return CACHE.promise;
+  }
+
+  function analyticsFor(entry, view) {
+    var NA = window.NovaAnalytics;
+    if (!entry.full) entry.full = NA.compute(entry.data);
+    if (view !== "overview" && view !== "insights") return { A: entry.full, ctx: null };
+    var mode = view === "insights" ? "all" : PERIOD;
+    if (!entry.periods[mode]) {
+      var ctx = NA.computePeriods(entry.data, mode, entry.full);
+      ctx.loadedAt = entry.loadedAt;
+      ctx.workspace = WS.name;
+      ctx.intel = window.NovaRecommend ? window.NovaRecommend.build(ctx) : null;
+      entry.periods[mode] = ctx;
+    }
+    return { A: entry.periods[mode].A, ctx: entry.periods[mode] };
+  }
+
+  function daysBetween(isoDate, now) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate || "");
+    if (!m) return null;
+    return Math.floor((now - Date.UTC(+m[1], +m[2] - 1, +m[3])) / 86400000);
+  }
+
+  function setStatus(entry) {
+    var st = $("dataStatus");
+    if (!st) return;
+    var dr = entry && entry.full && entry.full.dateRange;
+    st.hidden = !dr;
+    if (!dr) return;
+    var age = daysBetween(dr.last, entry.loadedAt);
+    var d = new Date(dr.last + "T00:00:00Z");
+    var when = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+    st.classList.toggle("stale", age !== null && age > STALE_DAYS);
+    $("dataStatusText").textContent = "Data through " + when + (age !== null && age > STALE_DAYS ? " · " + age + " days old" : "");
+    st.title = "Latest order date in your workspace data. Loaded from the database at " +
+      entry.loadedAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) + " today.";
+  }
+
+  function greeting() {
+    var h = new Date().getHours();
+    return h < 5 ? "Good evening" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+  }
+
+  function setHead(view, ctx) {
+    var period = $("periodSeg");
+    if (period) period.hidden = view !== "overview";
+    if (view !== "overview" || !ctx) return;
+    $("title").textContent = greeting() + ", " + WS.name;
+    $("subtitle").textContent = "Executive overview · " + ctx.label +
+      (ctx.mode !== "all" ? " (" + ctx.sublabel + ")" : " (" + ctx.sublabel + ")") +
+      (ctx.prevLabel ? " compared with " + ctx.prevLabel : ctx.note ? " · " + ctx.note : "");
+    document.querySelectorAll("#periodSeg button").forEach(function (b) {
+      var on = b.dataset.period === PERIOD;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+
+  function renderAnalytics(view, host, token, force) {
+    if (!window.NovaAnalytics || !window.NovaViews) {
+      host.replaceChildren();
+      host.appendChild(el("p", "note",
+        "Analytics modules did not load. Check that the nova-*.js files are deployed under /dashboard/client/."));
+      return;
+    }
+
+    setHead(view, null);
+    if (!CACHE || !CACHE.data || force) host.appendChild(el("p", "dim", "Loading your business data…"));
+
+    return getData(force).then(function (entry) {
+      if (token !== navToken) return;
+
+      var r = analyticsFor(entry, view);
+      host.replaceChildren();
+      setStatus(entry);
+      setHead(view, r.ctx);
+      window.NovaViews.render(view, host, r.A, r.ctx);
+
+      if (view !== "overview") {
+        var A = entry.full;
+        host.appendChild(el("p", "dim",
+          "Loaded " + A.counts.customers.toLocaleString() + " customers, " +
+          A.counts.products.toLocaleString() + " products, " +
+          A.counts.orders.toLocaleString() + " orders, " +
+          A.counts.items.toLocaleString() + " order lines and " +
+          A.counts.payments.toLocaleString() + " payments."));
+      }
     }).catch(function (e) {
       if (token !== navToken) return;
-      body.className = "note";
-      body.textContent = "Could not load " + def.title.toLowerCase() + ": " + (isNetworkError(e) ? "network error, check your connection." : errText(e));
+      host.replaceChildren();
+      host.appendChild(el("h2", "", "Could not load your business data"));
+      host.appendChild(el("p", "note", errText(e)));
+      var retry = el("button", "btn btn--dark", "Retry loading data");
+      retry.type = "button";
+      retry.addEventListener("click", function () {
+        go(view, true);
+      });
+      host.appendChild(retry);
     });
   }
 
-  /* ── Events (delegated; no inline handlers because of the CSP) ───── */
+  function renderList(view, def, host, token) {
+    var card = el("div", "card");
+    card.appendChild(el("h2", "", def.title));
+    card.appendChild(el("p", "dim", "Loading records…"));
+    host.replaceChildren(card);
+
+    return SB.from(def.table)
+      .select("*")
+      .eq("workspace_id", WS.id)
+      .limit(100)
+      .then(function (r) {
+        if (token !== navToken) return;
+        if (r.error) throw r.error;
+
+        var rows = r.data || [];
+        card.replaceChildren(el("h2", "", def.title));
+
+        if (!rows.length) {
+          card.appendChild(el("p", "dim", def.empty));
+          return;
+        }
+
+        rows.forEach(function (row) {
+          var item = el("div", "rec");
+          item.appendChild(el("b", "", String(
+            row.name || row.title || row.file_name || row.source_file || "Record"
+          )));
+
+          var meta = [];
+          if (row.row_count != null) meta.push(row.row_count + " rows");
+          if (row.status) meta.push(String(row.status));
+          if (row.created_at) meta.push(new Date(row.created_at).toLocaleString());
+
+          item.appendChild(el("span", "", meta.join(" · ")));
+          card.appendChild(item);
+        });
+      }).catch(function (e) {
+        if (token !== navToken) return;
+        card.replaceChildren(el("h2", "", def.title));
+        card.appendChild(el("p", "note", errText(e)));
+      });
+  }
+
   document.addEventListener("click", function (ev) {
-    var t = ev.target, b;
-    if (t.closest("[data-signout]")) return signOut();
-    if (t.closest("[data-retry]")) { gate("loading"); return openWorkspace(); }
-    if ((b = t.closest("#nav button[data-view]"))) return go(b.dataset.view);
+    var target = ev.target;
+    if (!target || !target.closest) return;
+
+    if (target.closest("[data-signout]")) {
+      signOut();
+      return;
+    }
+
+    if (target.closest("[data-retry]")) {
+      showGate("loading");
+      openWorkspace();
+      return;
+    }
+
+    if (target.closest("[data-refresh]")) {
+      var current = (location.hash || "#overview").slice(1);
+      go(VIEWS[current] ? current : "overview", true);
+      return;
+    }
+
+    var periodBtn = target.closest("#periodSeg button[data-period]");
+    if (periodBtn) {
+      if (periodBtn.dataset.period !== PERIOD) {
+        PERIOD = periodBtn.dataset.period;
+        go("overview");
+      }
+      return;
+    }
+
+    var goto = target.closest("[data-goto]");
+    if (goto && VIEWS[goto.dataset.goto]) {
+      go(goto.dataset.goto);
+      return;
+    }
+
+    var button = target.closest("#nav button[data-view]");
+    if (button) go(button.dataset.view);
   });
 
-  /* ── Start ───────────────────────────────────────────────────────── */
-  (function start() {
-    var c;
-    try { c = sbClient(); } catch (e) { return gate("error", "The workspace is not configured", errText(e)); }
-    gate("loading");
-    c.auth.getSession().then(function (r) {
+  function start() {
+    try {
+      sbClient();
+    } catch (e) {
+      showGate("error", errText(e));
+      return;
+    }
+
+    showGate("loading");
+
+    SB.auth.getSession().then(function (r) {
       if (r.error) throw r.error;
-      if (!r.data || !r.data.session) return gate("login");
+      if (!r.data || !r.data.session) {
+        showGate("login");
+        return;
+      }
       return openWorkspace();
-    }).catch(fail);
-  })();
+    }).catch(function (e) {
+      showGate("error", errText(e));
+    });
+  }
+
+  start();
 })();
